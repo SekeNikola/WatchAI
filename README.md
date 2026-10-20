@@ -115,7 +115,7 @@ adb pair <watch-ip>:<pairing-port> <code>
 
 # every time: the IP:port shown on the Wireless debugging screen
 adb connect <watch-ip>:<port>
-adb install -r CuteCompanion-1.0.0.apk
+adb install -r CuteCompanion-1.0.1.apk
 ```
 
 ### 4. Set the face and pick a character
@@ -157,9 +157,10 @@ Without it, everything else (moods, taps, battery, time of day) still works.
 
 ## Good to know
 
-- **Battery:** animation runs only while the screen is on, at about 60 fps for the few seconds you're
-  looking. Standby redraws once a minute. Notification and music detection use system callbacks,
-  with no polling.
+- **Battery:** animation runs only while the screen is on: 20 fps while it's just floating, 30 fps
+  during reactions, and 15 fps without glow when the watch's battery saver is on. The glow is drawn
+  with cheap layered shapes instead of GPU blur (about 5 ms per frame on a Pixel Watch 2). Standby
+  redraws once a minute. Notification and music detection use system callbacks, with no polling.
 - **Notification card:** when a notification arrives, Wear OS shows its own card on top of the
   face. The reaction is held for a few seconds, so it's still playing when you swipe the card away.
 - **Charging screen:** some watches (including Pixel) show a charging screen over any face. Swipe
@@ -214,6 +215,7 @@ adb shell am broadcast -a com.jarvis.watchface.DEBUG -p com.jarvis.watchface --e
 | `tap`, `bored`, `notify:remind` | simulate a tap, skip the bored timer, a notification |
 | `music:on`, `unread:2` | fake music / unread count |
 | `battery:10:false`, `hour:2` | fake battery level and charging, or time of day (`:real` to undo) |
+| `lite:on` | force the battery-saver look (`lite:off`, `lite:auto`) |
 | `clear` | back to live signals |
 
 On Windows, `jarvis.ps1` wraps these: `.\jarvis.ps1 cmd state:angry`, `.\jarvis.ps1 install`.

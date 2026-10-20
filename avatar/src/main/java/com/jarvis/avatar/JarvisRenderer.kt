@@ -47,8 +47,13 @@ class JarvisRenderer {
     private val path2 = Path()
     private val rect = RectF()
 
-    /** Current face glow radius, so shapes that change colour can put it back. */
+    /** Current face glow radius, so shapes that change colour can put it back (unused: fake glow). */
     private var faceGlow = 0f
+
+    // Fake glow: the face is drawn first in wider, see-through passes. A GPU blur
+    // (setShadowLayer) per shape cost ~30% of every frame on a Pixel Watch 2.
+    private var glowPass = false
+    private var glowExtra = 0f
 
     private var shaderR = -1f
     private var bodyShader: Shader? = null
@@ -278,10 +283,9 @@ class JarvisRenderer {
             stroke.color = withAlpha(p.bulb, 0.7f)
             c.drawCircle(0f, tagY, r * 0.1f, stroke)
         } else {
+            if (!lite) halo(c, 0f, tagY, r * 0.11f, p.bulb, p.pulse)
             fill.color = p.bulb
-            if (!lite) fill.setShadowLayer(blur(r * (0.15f + 0.3f * clamp(p.pulse, 0f, 1f))), 0f, 0f, p.bulb)
             c.drawCircle(0f, tagY, r * 0.11f, fill)
-            fill.clearShadowLayer()
             fill.color = Color.argb(178, 255, 255, 255)
             c.drawCircle(-r * 0.035f, tagY - r * 0.035f, r * 0.03f, fill)
         }
@@ -343,10 +347,17 @@ class JarvisRenderer {
             stroke.color = line
             c.drawPath(path, stroke)
         } else {
+            if (!lite) {
+                // Soft aura: stacked translucent strokes, widest and faintest first.
+                val k = clamp(p.pulse, 0f, 1f)
+                for (i in 0 until 4) {
+                    stroke.color = withAlpha(p.bulb, (0.045f + 0.02f * k) * (1f + i * 0.35f))
+                    stroke.strokeWidth = r * (0.42f - i * 0.1f)
+                    c.drawPath(path, stroke)
+                }
+            }
             shaded.shader = ghostShader
-            if (!lite) shaded.setShadowLayer(blur(r * 0.35f), 0f, 0f, withAlpha(p.bulb, 0.35f + 0.25f * clamp(p.pulse, 0f, 1f)))
             c.drawPath(path, shaded)
-            shaded.clearShadowLayer()
             shaded.shader = null
             if (!lite) {
                 c.save()
@@ -369,16 +380,24 @@ class JarvisRenderer {
             stroke.color = withAlpha(p.bulb, 0.7f)
             c.drawCircle(wx, wy, r * 0.09f, stroke)
         } else {
+            if (!lite) halo(c, wx, wy, r * 0.1f, p.bulb, p.pulse)
             fill.color = p.bulb
-            if (!lite) fill.setShadowLayer(blur(r * (0.2f + 0.4f * clamp(p.pulse, 0f, 1f))), 0f, 0f, p.bulb)
             c.drawCircle(wx, wy, r * 0.1f, fill)
-            fill.clearShadowLayer()
             fill.color = Color.argb(178, 255, 255, 255)
             c.drawCircle(wx - r * 0.035f, wy - r * 0.035f, r * 0.03f, fill)
         }
         if (ambient) faceSpec(0.3f, -0.2f, 0.12f, 0xFFB8BED6.toInt(), false)
         else faceSpec(0.3f, -0.2f, 0.12f, 0xFF2A2440.toInt(), false)
         drawFace(c, p, t, r, lite)
+    }
+
+    /** A soft glow made of two translucent circles (cheap stand-in for a blur shadow). */
+    private fun halo(c: Canvas, x: Float, y: Float, rad: Float, color: Int, pulse: Float) {
+        val k = clamp(pulse, 0f, 1f)
+        for (i in 0 until 4) {
+            fill.color = withAlpha(color, (0.06f + 0.05f * k) * (1f + i * 0.3f))
+            c.drawCircle(x, y, rad * (2.1f + 0.5f * k - i * 0.25f), fill)
+        }
     }
 
     // ── Parts ───────────────────────────────────────────────────────────────
@@ -422,10 +441,9 @@ class JarvisRenderer {
         path.quadTo(sin(a) * len * 0.2f, by - len * 0.5f, tx, ty)
         c.drawPath(path, stroke)
 
+        if (!lite) halo(c, tx, ty, r * 0.12f, p.bulb, p.pulse)
         fill.color = p.bulb
-        if (!lite) fill.setShadowLayer(blur(r * (0.2f + 0.4f * clamp(p.pulse, 0f, 1f))), 0f, 0f, p.bulb)
         c.drawCircle(tx, ty, r * 0.12f, fill)
-        fill.clearShadowLayer()
         fill.color = Color.argb(178, 255, 255, 255)
         c.drawCircle(tx - r * 0.04f, ty - r * 0.04f, r * 0.035f, fill)
     }
@@ -435,15 +453,26 @@ class JarvisRenderer {
         val oy = p.lookY * r * 0.09f
         val ew = r * 0.12f * p.es
         val eh = r * 0.17f * p.es
-        val glow = if (lite || !faceGlowOn) 0f else blur(r * 0.22f)
-        faceGlow = glow
-        val faceColor = withAlpha(faceInk, p.dim)
+        faceGlow = 0f
+        if (!lite && faceGlowOn) {
+            // Two soft halo passes, then the crisp face on top.
+            facePass(c, p, t, r, ox, oy, ew, eh, lite, withAlpha(faceInk, 0.13f * p.dim), r * 0.13f)
+            facePass(c, p, t, r, ox, oy, ew, eh, lite, withAlpha(faceInk, 0.2f * p.dim), r * 0.065f)
+        }
+        facePass(c, p, t, r, ox, oy, ew, eh, lite, withAlpha(faceInk, p.dim), 0f)
+    }
+
+    private fun facePass(
+        c: Canvas, p: JarvisPose, t: Float, r: Float, ox: Float, oy: Float, ew: Float, eh: Float,
+        lite: Boolean, faceColor: Int, extra: Float,
+    ) {
+        glowPass = extra > 0f
+        glowExtra = extra
+        fill.style = if (glowPass) Paint.Style.FILL_AND_STROKE else Paint.Style.FILL
+        fill.strokeWidth = extra
+        fill.strokeJoin = Paint.Join.ROUND
         fill.color = faceColor
         stroke.color = faceColor
-        if (glow > 0f) {
-            fill.setShadowLayer(glow, 0f, 0f, faceColor)
-            stroke.setShadowLayer(glow, 0f, 0f, faceColor)
-        }
         for (side in SIDES) {
             val sz = if (p.eyes == Eye.QUESTION && side > 0) 1.12f else 1f
             val cx = side * r * eyeX + ox
@@ -457,10 +486,12 @@ class JarvisRenderer {
         val my = r * mouthY + oy * 0.5f
         c.save()
         c.scale(max(0.3f, p.mouthSwap), max(0.06f, p.mouthSwap), mx, my)
-        drawMouth(c, p, t, r, mx, my, faceColor)
+        if (!(glowPass && p.mouth == Mouth.GULP)) drawMouth(c, p, t, r, mx, my, faceColor)
         c.restore()
-        fill.clearShadowLayer()
-        stroke.clearShadowLayer()
+        glowPass = false
+        glowExtra = 0f
+        fill.style = Paint.Style.FILL
+        fill.strokeWidth = 0f
     }
 
     private fun eyeFor(e: Eye, side: Float): Eye = when (e) {
@@ -473,40 +504,40 @@ class JarvisRenderer {
         c: Canvas, shape: Eye, cx: Float, cy: Float, ew: Float, eh: Float,
         p: JarvisPose, t: Float, side: Float, lite: Boolean, faceColor: Int,
     ) {
-        stroke.strokeWidth = ew * 0.75f
+        stroke.strokeWidth = ew * 0.75f + glowExtra
         when (shape) {
             Eye.OPEN, Eye.FOCUS -> {
                 val h = eh * (if (shape == Eye.FOCUS) 0.68f else 1f) * max(0.08f, p.open)
                 pill(c, cx, cy, ew, h)
-                if (!lite && p.open > 0.5f) sparkle(c, cx + ew * 0.35f, cy - h * 0.45f, ew * 0.3f, p.dim)
+                if (!lite && !glowPass && p.open > 0.5f) sparkle(c, cx + ew * 0.35f, cy - h * 0.45f, ew * 0.3f, p.dim)
             }
             Eye.WIDE, Eye.DOT -> {
                 val k = if (shape == Eye.DOT) 0.62f else 1f
                 val ry = eh * k * max(0.1f, p.open)
                 oval(cx, cy, eh * 0.92f * k, ry)
                 c.drawOval(rect, fill)
-                if (!lite) sparkle(c, cx + eh * 0.35f * k, cy - ry * 0.4f, eh * 0.28f * k, p.dim)
+                if (!lite && !glowPass) sparkle(c, cx + eh * 0.35f * k, cy - ry * 0.4f, eh * 0.28f * k, p.dim)
             }
             Eye.HAPPY -> arc(c, cx, cy + eh * 0.45f, ew * 1.15f, 1.12f, 1.88f)
             Eye.CLOSED -> arc(c, cx, cy - eh * 0.35f, ew * 1.15f, 0.12f, 0.88f)
             Eye.LINE -> c.drawLine(cx - ew, cy, cx + ew, cy, stroke)
             Eye.ANNOYED -> {
                 c.drawLine(cx - ew, cy + eh * 0.15f, cx + ew, cy + eh * 0.15f, stroke)
-                stroke.strokeWidth = ew * 0.5f
+                stroke.strokeWidth = ew * 0.5f + glowExtra
                 c.drawLine(cx + side * ew * 1.1f, cy - eh * 0.95f, cx - side * ew * 0.9f, cy - eh * 0.45f, stroke)
             }
             Eye.TIRED -> {
                 pill(c, cx, cy + eh * 0.38f, ew, eh * 0.45f)
-                stroke.strokeWidth = ew * 0.45f
+                stroke.strokeWidth = ew * 0.45f + glowExtra
                 c.drawLine(cx - ew * 1.2f, cy - eh * 0.12f, cx + ew * 1.2f, cy - eh * 0.12f, stroke)
             }
             Eye.X -> {
-                stroke.strokeWidth = ew * 0.6f
+                stroke.strokeWidth = ew * 0.6f + glowExtra
                 c.drawLine(cx - ew, cy - ew, cx + ew, cy + ew, stroke)
                 c.drawLine(cx + ew, cy - ew, cx - ew, cy + ew, stroke)
             }
             Eye.SPIRAL -> {
-                stroke.strokeWidth = ew * 0.4f
+                stroke.strokeWidth = ew * 0.4f + glowExtra
                 path.reset()
                 val turns = TAU * 2.2f
                 var a = 0f
@@ -519,19 +550,28 @@ class JarvisRenderer {
                 }
                 c.drawPath(path, stroke)
             }
-            Eye.HEART -> {
+            Eye.HEART -> if (!glowPass) {
+                val hs = eh * (1f + 0.12f * sin(t * 10f))
+                if (!lite) {
+                    fill.color = withAlpha(Palette.PINK, 0.25f * p.dim)
+                    heartPath(path, cx, cy, hs * 1.3f)
+                    c.drawPath(path, fill)
+                }
                 fill.color = withAlpha(Palette.PINK, p.dim)
-                if (!lite) fill.setShadowLayer(blur(eh), 0f, 0f, Palette.PINK)
-                heartPath(path, cx, cy, eh * (1f + 0.12f * sin(t * 10f)))
+                heartPath(path, cx, cy, hs)
                 c.drawPath(path, fill)
                 restoreFace(faceColor)
             }
-            Eye.STAR -> {
-                fill.color = withAlpha(Palette.GOLD, p.dim)
-                if (!lite) fill.setShadowLayer(blur(eh), 0f, 0f, Palette.GOLD)
+            Eye.STAR -> if (!glowPass) {
                 c.save()
                 c.translate(cx, cy)
                 c.rotate(t * 1.5f * side * RAD2DEG)
+                if (!lite) {
+                    fill.color = withAlpha(Palette.GOLD, 0.25f * p.dim)
+                    starPath(path, 0f, 0f, eh * 1.4f, eh * 0.62f)
+                    c.drawPath(path, fill)
+                }
+                fill.color = withAlpha(Palette.GOLD, p.dim)
                 starPath(path, 0f, 0f, eh * 1.05f, eh * 0.46f)
                 c.drawPath(path, fill)
                 c.restore()
@@ -543,12 +583,11 @@ class JarvisRenderer {
 
     private fun restoreFace(faceColor: Int) {
         fill.color = faceColor
-        if (faceGlow > 0f) fill.setShadowLayer(faceGlow, 0f, 0f, faceColor) else fill.clearShadowLayer()
     }
 
     private fun drawMouth(c: Canvas, p: JarvisPose, t: Float, r: Float, mx: Float, my: Float, faceColor: Int) {
         val o = p.mouthOpen
-        stroke.strokeWidth = r * 0.045f
+        stroke.strokeWidth = r * 0.045f + glowExtra
         when (p.mouth) {
             Mouth.NONE -> Unit
             Mouth.SMILE -> arc(c, mx, my - r * 0.07f, r * 0.09f, 0.2f, 0.8f)
@@ -565,7 +604,7 @@ class JarvisRenderer {
             Mouth.FLAT -> c.drawLine(mx - r * 0.07f, my, mx + r * 0.07f, my, stroke)
             Mouth.FROWN -> arc(c, mx, my + r * 0.08f, r * 0.08f, 1.2f, 1.8f)
             Mouth.WAVY -> {
-                stroke.strokeWidth = r * 0.035f
+                stroke.strokeWidth = r * 0.035f + glowExtra
                 path.reset()
                 for (i in 0..12) {
                     val px = mx - r * 0.13f + (i / 12f) * r * 0.26f
@@ -596,7 +635,7 @@ class JarvisRenderer {
                 c.drawOval(rect, fill)
                 c.restore()
                 fill.color = faceColor
-                stroke.strokeWidth = r * 0.035f
+                stroke.strokeWidth = r * 0.035f + glowExtra
                 oval(mx, cy, gr * 1.08f, gr)
                 c.drawOval(rect, stroke)
             }
@@ -827,10 +866,14 @@ class JarvisRenderer {
                 ParticleType.BOLT -> {
                     c.rotate((sin(p.age * 7f + p.rot) * 0.25f - 0.15f) * RAD2DEG)
                     fill.color = withAlpha(Palette.GOLD, alpha)
-                    fill.setShadowLayer(sz * 0.6f, 0f, 0f, withAlpha(Palette.GOLD, alpha * 0.8f))
                     boltPath(path, sz)
+                    c.save()
+                    c.scale(1.35f, 1.2f)
+                    fill.color = withAlpha(Palette.GOLD, alpha * 0.25f)
                     c.drawPath(path, fill)
-                    fill.clearShadowLayer()
+                    c.restore()
+                    fill.color = withAlpha(Palette.GOLD, alpha)
+                    c.drawPath(path, fill)
                 }
                 ParticleType.NOTE -> {
                     c.rotate(sin(p.age * 5f + p.rot) * 0.35f * RAD2DEG)

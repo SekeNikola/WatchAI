@@ -62,7 +62,7 @@ class FacePainter(private val context: Context) {
 
     fun drawInteractive(
         c: Canvas, w: Float, h: Float, z: ZonedDateTime,
-        engine: JarvisEngine, t: Float, battery: Int, charging: Boolean,
+        engine: JarvisEngine, t: Float, battery: Int, charging: Boolean, lite: Boolean = false,
     ) {
         prepare(w, z, battery)
         setAntiAlias(true)
@@ -75,7 +75,7 @@ class FacePainter(private val context: Context) {
         val cy = h * AVATAR_Y + engine.offsetY * r
         c.save()
         c.translate(cx, cy)
-        avatar.draw(c, pose, t, RenderStyle.FULL)
+        avatar.draw(c, pose, t, if (lite) RenderStyle.LITE else RenderStyle.FULL)
         c.restore()
         avatar.drawParticles(c, engine.particles, r, cx, cy - r * 0.3f)
         // Time last: hearts and z's float up behind it, never over it.

@@ -432,6 +432,20 @@ class JarvisEngine {
         return out
     }
 
+    /**
+     * True when nothing but the idle loop (float, blink, sway) is running: no tweens,
+     * particles, emotes or shape swaps. The renderer drops the frame rate then.
+     */
+    val calm: Boolean
+        get() {
+            if (emote != null || eyeSwapPhase != 0 || mouthSwapPhase != 0) return false
+            if (abs(antennaVel) > 0.3f || groove > 0.01f) return false
+            if (abs(mailS - (if (mail) 1f else 0f)) > 0.02f) return false
+            for (tw in tweens) if (tw != null && tw !== tweens[Prop.OPEN.ordinal]) return false
+            for (p in particles) if (p.alive) return false
+            return !state.bounces && !state.scans && state != BotState.DIZZY && state != BotState.ANGRY
+        }
+
     /** Body offset from the layout centre, in × R (float bob + hops + shakes). */
     val offsetX: Float get() = v[Prop.OX.ordinal]
     val offsetY: Float get() = v[Prop.OY.ordinal] + sin(floatPhase) * floatAmp

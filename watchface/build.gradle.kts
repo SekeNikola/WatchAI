@@ -19,8 +19,8 @@ android {
         applicationId = "com.jarvis.watchface"
         minSdk = 30 // Wear OS 3+
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
     }
     signingConfigs {
         if (keystoreProps.isNotEmpty()) {

@@ -10,6 +10,7 @@ import android.os.BatteryManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.os.SystemClock
 import android.view.SurfaceHolder
 import androidx.wear.watchface.CanvasType
@@ -48,11 +49,13 @@ class JarvisCanvasRenderer(
     private val director = MoodDirector(engine)
     private val painter = FacePainter(context)
     private val main = Handler(Looper.getMainLooper())
+    private val power = context.getSystemService(PowerManager::class.java)
 
     private var lastMode: DrawMode? = null
     private var lastStyle: UserStyle? = null
     private var styleCharacter = Character.JARVIS
     private var debugCharacter: Character? = null
+    private var debugLite: Boolean? = null
     private var clockBase = SystemClock.uptimeMillis()
 
     private val batteryReceiver = object : BroadcastReceiver() {
@@ -122,6 +125,7 @@ class JarvisCanvasRenderer(
             val cmd = AvatarBus.poll() ?: break
             when {
                 cmd == "assist" -> AssistantLauncher.launch(context)
+                cmd.startsWith("lite:") -> debugLite = when (cmd.substringAfter(':')) { "on" -> true; "off" -> false; else -> null }
                 cmd.startsWith("character:") -> debugCharacter =
                     cmd.substringAfter(':').let { if (it == "style") null else Character.fromId(it) }
                 cmd.startsWith("notify") -> {
@@ -150,9 +154,20 @@ class JarvisCanvasRenderer(
                 watchState.hasLowBitAmbient, director.hasPendingAlert(nowMs) || AvatarBus.unread > 0, AvatarBus.music,
             )
         } else {
+            // Battery: 30 fps while something happens, 20 fps when only the idle loop runs;
+            // with battery saver on, 15 fps and no glow.
+            val saver = debugLite ?: power.isPowerSaveMode
+            val delay = when {
+                saver -> SAVER_FRAME_MS
+                engine.calm -> CALM_FRAME_MS
+                else -> FRAME_MS
+            }
+            if (interactiveDrawModeUpdateDelayMillis != delay) interactiveDrawModeUpdateDelayMillis = delay
             val t = (nowMs - clockBase) / 1000f
             engine.update(t)
-            painter.drawInteractive(canvas, w, h, zonedDateTime, engine, t, director.batteryLevel, director.charging)
+            painter.drawInteractive(
+                canvas, w, h, zonedDateTime, engine, t, director.batteryLevel, director.charging, lite = saver,
+            )
         }
     }
 
@@ -162,7 +177,12 @@ class JarvisCanvasRenderer(
 
     companion object {
         const val DEBUG_ACTION = "com.jarvis.watchface.DEBUG"
-        private const val FRAME_MS = 16L
+        /** ~30 fps: smooth for a floating character at half the cost of 60. */
+        private const val FRAME_MS = 33L
+        /** ~20 fps when only floating and blinking. */
+        private const val CALM_FRAME_MS = 50L
+        /** ~15 fps while the watch's battery saver is on. */
+        private const val SAVER_FRAME_MS = 66L
         private const val CLOCK_RESTART_MS = 3 * 3600_000L
     }
 }
