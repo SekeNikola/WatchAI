@@ -18,7 +18,7 @@ import kotlin.random.Random
 // Drive it with update(nowSeconds) once per frame, then pose(r, out).
 // Steady-state frames allocate nothing; triggering an action allocates its keyframes.
 
-enum class ParticleType { HEART, STAR, SPARK, SWEAT, Z, NOTE }
+enum class ParticleType { HEART, STAR, SPARK, SWEAT, Z, NOTE, BOLT }
 
 class Particle {
     var alive = false
@@ -81,6 +81,7 @@ class JarvisEngine {
     private var badgeColor = Palette.MINT
     private var badgeToken = 0
     private var nextNote = 0f
+    private var nextBolt = 0f
     private var groove = 0f
     private var mailS = 0f
     private var mailV = 0f
@@ -210,7 +211,7 @@ class JarvisEngine {
             if (made >= count) break
             if (p.alive) continue
             val isZ = type == ParticleType.Z
-            val isNote = type == ParticleType.NOTE
+            val isNote = type == ParticleType.NOTE || type == ParticleType.BOLT
             p.alive = true
             p.type = type
             p.x = (Random.nextFloat() - 0.5f) * 0.9f + (if (isZ) 0.55f else 0f)
@@ -297,6 +298,10 @@ class JarvisEngine {
         // Music: a gentle sway (~100 bpm) that fades in and out, notes every ~0.8 s.
         groove += ((if (music) 1f else 0f) - groove) * (1f - 0.05f.pow(dt))
         if (groove > 0.01f) tgTilt += sin(t * 5.2f) * 0.07f * groove
+        if (cfg == BotState.CHARGING && n > nextBolt) {
+            emit(ParticleType.BOLT, 1)
+            nextBolt = n + 0.7f + Random.nextFloat() * 0.6f
+        }
         if (music && n > nextNote && cfg != BotState.SLEEPING) {
             emit(ParticleType.NOTE, 1)
             nextNote = n + 0.6f + Random.nextFloat() * 0.5f

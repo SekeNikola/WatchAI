@@ -58,6 +58,7 @@ class ScreenshotTest {
             })
         }
         shots += Shot("music", frame { e -> e.music = true; 3.0f })
+        shots += Shot("charging_bolts", frame(battery = 64, charging = true) { e -> e.setState(BotState.CHARGING, force = true); 3.2f })
         shots += Shot("ambient_notification", frame(ambient = true, alert = true) { e -> e.update(0.5f); 0.5f })
         shots.forEach { save(it.name, it.bitmap) }
         save("_contact_sheet", sheet(shots))

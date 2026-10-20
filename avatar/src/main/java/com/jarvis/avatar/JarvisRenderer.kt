@@ -422,6 +422,18 @@ class JarvisRenderer {
         c.restore()
     }
 
+    /** A lightning bolt about 2·s tall, centred on the origin. */
+    private fun boltPath(p: Path, s: Float) {
+        p.reset()
+        p.moveTo(s * 0.25f, -s)
+        p.lineTo(-s * 0.45f, s * 0.12f)
+        p.lineTo(-s * 0.02f, s * 0.12f)
+        p.lineTo(-s * 0.25f, s)
+        p.lineTo(s * 0.45f, -s * 0.15f)
+        p.lineTo(s * 0.02f, -s * 0.15f)
+        p.close()
+    }
+
     /** A music note (♪, or ♫ when [double]) centred on the origin, about 2·s tall. */
     private fun noteGlyph(c: Canvas, s: Float, double: Boolean, fillIt: Boolean) {
         stroke.strokeWidth = s * 0.22f
@@ -553,7 +565,7 @@ class JarvisRenderer {
             val a = if (k < 0.2f) k / 0.2f else 1f - (k - 0.2f) / 0.8f
             val px = cx + (p.x + p.vx * p.age) * r * 1.3f
             val py = cy + (p.y + p.vy * p.age) * r * 1.3f
-            val sz = r * p.size * (1f + k * 0.4f)
+            val sz = r * p.size * PARTICLE_SCALE * (1f + k * 0.4f)
             val alpha = clamp(a, 0f, 1f)
             c.save()
             c.translate(px, py)
@@ -583,6 +595,14 @@ class JarvisRenderer {
                     path.quadTo(sz * 0.8f, sz * 0.2f, 0f, sz * 0.6f)
                     path.quadTo(-sz * 0.8f, sz * 0.2f, 0f, -sz)
                     c.drawPath(path, fill)
+                }
+                ParticleType.BOLT -> {
+                    c.rotate((sin(p.age * 7f + p.rot) * 0.25f - 0.15f) * RAD2DEG)
+                    fill.color = withAlpha(Palette.GOLD, alpha)
+                    fill.setShadowLayer(sz * 0.6f, 0f, 0f, withAlpha(Palette.GOLD, alpha * 0.8f))
+                    boltPath(path, sz)
+                    c.drawPath(path, fill)
+                    fill.clearShadowLayer()
                 }
                 ParticleType.NOTE -> {
                     c.rotate(sin(p.age * 5f + p.rot) * 0.35f * RAD2DEG)
@@ -680,6 +700,9 @@ class JarvisRenderer {
 
     private companion object {
         val SIDES = floatArrayOf(-1f, 1f)
+
+        /** Hearts, notes, bolts, stars… drawn this much larger than on desktop (small screen). */
+        const val PARTICLE_SCALE = 1.5f
 
         /** Canvas2D shadowBlur → Android shadow radius (σ = blur/2, radius ≈ σ / 0.577). */
         fun blur(canvasBlur: Float) = max(0.5f, canvasBlur * 0.85f)
