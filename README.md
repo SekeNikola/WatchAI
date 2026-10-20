@@ -6,6 +6,25 @@ No companion app, no mic, no LLM calls, no network.
 
 ![states](docs/contact_sheet.png)
 
+## Characters
+
+Pick one on the watch: **long-press the face → Customize → Character** (the only, and first,
+setting). All characters share the engine, every emotion, tap ladder, notification, music and
+battery reaction; each only brings its own body.
+
+| | Body | Status light |
+|---|---|---|
+| **Jarvis** | periwinkle robot dome, dark visor, mint LED face | antenna bulb |
+| **Biscuit** (dog) | tan head, floppy ears that wiggle with the antenna spring, cream muzzle, black nose | tag on the red collar |
+| **Boo** (ghost) | lavender sheet with a waving hem, little arms, glows in the mood colour | floating wisp above the head |
+
+![dog](docs/sheet_dog.png)
+![ghost](docs/sheet_ghost.png)
+
+To add a character: add it to `Character` (avatar), draw its body in `JarvisRenderer.drawCritter`
+(set where the shared face sits with `faceSpec`), add an icon + name in `Styles`, and run the
+screenshot test — it renders a gallery and the picker icon (`char_<id>.png`) for every character.
+
 ## Architecture
 
 ```
@@ -22,7 +41,8 @@ watchface/   The Wear OS app (Jetpack Watchface, CanvasRenderer2, hardware canva
   FacePainter              layout: time, Jarvis, date + battery; interactive and ambient
   MoodDirector             decides the emotion from clock, battery, taps, wake, notifications
   AssistantLauncher        tap → system assistant intent
-  JarvisNotificationListener  optional; notification → perk up / remind
+  JarvisNotificationListener  optional; notifications (envelope, reactions) and music
+  Styles + CharacterEditorActivity  the Character style setting and its on-watch picker
   AvatarBus                in-process command mailbox (debug, notifications)
   src/debug/DebugActivity  on-watch debug screen (debug builds only)
 ```
@@ -140,6 +160,7 @@ From the PC:
 .\jarvis.ps1 cmd hour:2             # fake time of day for moods, hour:real to undo
 .\jarvis.ps1 cmd tap                # listening pose without launching the assistant
 .\jarvis.ps1 cmd unread:2           # fake the unread count (envelope badge); unread:0 hides it
+.\jarvis.ps1 cmd character:dog       # jarvis | dog | ghost; character:style returns to the selected one
 .\jarvis.ps1 cmd music:on           # music notes on/off without real playback
 .\jarvis.ps1 cmd assist             # launch the assistant without the pose
 .\jarvis.ps1 shot bored             # screenshot from the watch into screens/

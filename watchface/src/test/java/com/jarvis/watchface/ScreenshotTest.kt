@@ -64,9 +64,49 @@ class ScreenshotTest {
         save("_contact_sheet", sheet(shots))
     }
 
+    @Test
+    fun renderCharacters() {
+        for (ch in com.jarvis.avatar.Character.entries) {
+            val shots = mutableListOf<Shot>()
+            fun st(name: String, s: BotState, battery: Int = 82, charging: Boolean = false, until: Float = 1.6f) {
+                shots += Shot(name, frame(battery = battery, charging = charging, character = ch) { e -> e.setState(s, force = true); until })
+            }
+            st("idle", BotState.IDLE)
+            shots += Shot("love", frame(character = ch) { e -> e.update(0.5f); e.triggerEmote(Emote.LOVE, 1.8f); 0.95f })
+            st("bored", BotState.BORED)
+            st("annoyed", BotState.ANNOYED)
+            st("angry", BotState.ANGRY)
+            st("dizzy", BotState.DIZZY)
+            st("notify", BotState.NOTIFY)
+            shots += Shot("music", frame(character = ch) { e -> e.music = true; 3.0f })
+            st("charging", BotState.CHARGING, 64, true, 3.2f)
+            st("full", BotState.FULL, 100, true, 2.2f)
+            st("worried", BotState.WORRIED, 12)
+            st("sleeping", BotState.SLEEPING)
+            shots += Shot("ambient", frame(ambient = true, character = ch) { e -> e.update(0.5f); 0.5f })
+            shots += Shot("ambient_notification", frame(ambient = true, alert = true, character = ch) { e -> e.update(0.5f); 0.5f })
+            save("_sheet_${ch.id}", sheet(shots))
+            save("char_${ch.id}", icon(ch))
+        }
+    }
+
+    /** Picker icon: the character alone on a dark disc. */
+    private fun icon(ch: com.jarvis.avatar.Character): Bitmap {
+        val n = 240
+        val bmp = Bitmap.createBitmap(n, n, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        c.drawCircle(n / 2f, n / 2f, n / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF15172B.toInt() })
+        val engine = JarvisEngine().apply { wander = false; update(0f); update(0.05f) }
+        val pose = engine.pose(n * 0.27f, com.jarvis.avatar.JarvisPose())
+        c.translate(n / 2f, n * 0.58f)
+        com.jarvis.avatar.JarvisRenderer().apply { character = ch }.draw(c, pose, 0f)
+        return bmp
+    }
+
     /** Runs the engine at 60 fps for the time the setup returns, then draws one frame. */
     private fun frame(
         battery: Int = 82, charging: Boolean = false, ambient: Boolean = false, alert: Boolean = false,
+        character: com.jarvis.avatar.Character = com.jarvis.avatar.Character.JARVIS,
         setup: (JarvisEngine) -> Float,
     ): Bitmap {
         val engine = JarvisEngine()
@@ -78,6 +118,7 @@ class ScreenshotTest {
         val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         val painter = FacePainter(RuntimeEnvironment.getApplication())
+        painter.character = character
         val w = size.toFloat()
         if (ambient) painter.drawAmbient(c, w, w, time, engine, battery, charging, false, alert)
         else painter.drawInteractive(c, w, w, time, engine, t, battery, charging)

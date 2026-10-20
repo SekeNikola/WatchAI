@@ -17,6 +17,8 @@ import androidx.wear.watchface.DrawMode
 import androidx.wear.watchface.Renderer
 import androidx.wear.watchface.WatchState
 import androidx.wear.watchface.style.CurrentUserStyleRepository
+import androidx.wear.watchface.style.UserStyle
+import com.jarvis.avatar.Character
 import com.jarvis.avatar.JarvisEngine
 import java.time.ZonedDateTime
 
@@ -29,7 +31,7 @@ class JarvisCanvasRenderer(
     private val context: Context,
     surfaceHolder: SurfaceHolder,
     private val watchState: WatchState,
-    currentUserStyleRepository: CurrentUserStyleRepository,
+    private val currentUserStyleRepository: CurrentUserStyleRepository,
 ) : Renderer.CanvasRenderer2<JarvisCanvasRenderer.Assets>(
     surfaceHolder,
     currentUserStyleRepository,
@@ -48,6 +50,9 @@ class JarvisCanvasRenderer(
     private val main = Handler(Looper.getMainLooper())
 
     private var lastMode: DrawMode? = null
+    private var lastStyle: UserStyle? = null
+    private var styleCharacter = Character.JARVIS
+    private var debugCharacter: Character? = null
     private var clockBase = SystemClock.uptimeMillis()
 
     private val batteryReceiver = object : BroadcastReceiver() {
@@ -117,6 +122,8 @@ class JarvisCanvasRenderer(
             val cmd = AvatarBus.poll() ?: break
             when {
                 cmd == "assist" -> AssistantLauncher.launch(context)
+                cmd.startsWith("character:") -> debugCharacter =
+                    cmd.substringAfter(':').let { if (it == "style") null else Character.fromId(it) }
                 cmd.startsWith("notify") -> {
                     val parts = cmd.split(':')
                     val postedAt = parts.getOrNull(2)?.toLongOrNull() ?: nowMs
@@ -125,6 +132,12 @@ class JarvisCanvasRenderer(
                 else -> director.command(cmd, nowMs, !ambient)
             }
         }
+        val style = currentUserStyleRepository.userStyle.value
+        if (style !== lastStyle) {
+            lastStyle = style
+            styleCharacter = Styles.character(style)
+        }
+        painter.character = debugCharacter ?: styleCharacter
         director.update(nowMs, hour)
         engine.mail = AvatarBus.unread > 0
         engine.music = AvatarBus.music

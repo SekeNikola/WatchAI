@@ -55,6 +55,22 @@ class JarvisRenderer {
     private var highlightShader: Shader? = null
     private var visorShader: Shader? = null
     private var scanShader: Shader? = null
+    private var dogShader: Shader? = null
+    private var ghostShader: Shader? = null
+
+    /** Which character to draw. */
+    var character = Character.JARVIS
+
+    // Face placement (× R) and ink, set per character before drawFace().
+    private var eyeX = 0.32f
+    private var eyeY = -0.05f
+    private var mouthY = MOUTH_Y + 0.04f
+    private var faceInk = Palette.MINT
+    private var faceGlowOn = true
+
+    private fun faceSpec(x: Float, y: Float, mouth: Float, ink: Int, glow: Boolean) {
+        eyeX = x; eyeY = y; mouthY = mouth; faceInk = ink; faceGlowOn = glow
+    }
 
     /** Set for low-bit ambient screens: no anti-aliasing. */
     var antiAlias = true
@@ -67,6 +83,11 @@ class JarvisRenderer {
     fun draw(c: Canvas, p: JarvisPose, t: Float, style: RenderStyle = RenderStyle.FULL) {
         val r = p.r
         if (r <= 0.5f) return
+        if (character != Character.JARVIS) {
+            drawCritter(c, p, t, style)
+            return
+        }
+        faceSpec(0.32f, -0.05f, MOUTH_Y + 0.04f, Palette.MINT, true)
         if (style == RenderStyle.AMBIENT) {
             drawAmbient(c, p, t)
             return
@@ -156,6 +177,209 @@ class JarvisRenderer {
         c.restore()
     }
 
+    // ── Dog and Ghost ───────────────────────────────────────────────────────
+
+    private fun drawCritter(c: Canvas, p: JarvisPose, t: Float, style: RenderStyle) {
+        val r = p.r
+        val ambient = style == RenderStyle.AMBIENT
+        val lite = style != RenderStyle.FULL
+        ensureShaders(r)
+        c.save()
+        c.rotate(p.tilt * RAD2DEG)
+        c.translate(0f, r * 0.8f)
+        c.scale(p.sx, p.sy)
+        c.translate(0f, -r * 0.8f)
+        if (character == Character.DOG) drawDog(c, p, t, r, ambient, lite) else drawGhost(c, p, t, r, ambient, lite)
+        if (!ambient) {
+            if (p.dizzy && !lite) {
+                fill.color = Palette.GOLD
+                for (i in 0 until 3) {
+                    val a = t * 4f + i * TAU / 3f
+                    starPath(path, cos(a) * r * 0.85f, -r * 1.08f + sin(a) * r * 0.18f, r * 0.11f, r * 0.05f)
+                    c.drawPath(path, fill)
+                }
+            }
+            if (p.badge != BadgeKind.NONE) drawBadge(c, p, t, r)
+        } else if (p.badge != BadgeKind.NONE && p.badgeScale > 0.01f) {
+            drawAmbientBadge(c, p, r)
+        }
+        c.restore()
+    }
+
+    private fun drawDog(c: Canvas, p: JarvisPose, t: Float, r: Float, ambient: Boolean, lite: Boolean) {
+        val line = 0xFF7A6250.toInt()
+        stroke.strokeWidth = r * 0.03f
+        // Collar with the status tag (the dog's "antenna bulb").
+        rect.set(-r * 0.6f, r * 0.6f, r * 0.6f, r * 0.88f)
+        if (ambient) {
+            stroke.color = line
+            c.drawRoundRect(rect, r * 0.12f, r * 0.12f, stroke)
+        } else {
+            fill.color = 0xFFE5484D.toInt()
+            c.drawRoundRect(rect, r * 0.12f, r * 0.12f, fill)
+        }
+        // Head.
+        oval(0f, -r * 0.04f, r * 1.0f, r * 0.86f)
+        if (ambient) {
+            fill.color = Color.BLACK
+            c.drawOval(rect, fill)
+            stroke.color = line
+            c.drawOval(rect, stroke)
+        } else {
+            shaded.shader = dogShader
+            c.drawOval(rect, shaded)
+            shaded.shader = null
+            if (!lite) {
+                c.save()
+                path2.reset()
+                path2.addOval(rect, Path.Direction.CW)
+                c.clipPath(path2)
+                shaded.shader = highlightShader
+                c.drawCircle(-r * 0.45f, -r * 0.55f, r * 0.55f, shaded)
+                shaded.shader = null
+                c.restore()
+            }
+        }
+        // Muzzle and cheeks.
+        oval(0f, r * 0.3f, r * 0.5f, r * 0.34f)
+        if (ambient) c.drawOval(rect, stroke) else {
+            fill.color = 0xFFF7E9D7.toInt()
+            c.drawOval(rect, fill)
+            fill.color = Color.argb(a255(0.22f + 0.6f * clamp(p.blush, 0f, 1f)), 255, 140, 180)
+            for (s in SIDES) {
+                oval(s * r * 0.62f, r * 0.28f, r * 0.13f, r * 0.07f)
+                c.drawOval(rect, fill)
+            }
+        }
+        // Floppy ears, wiggling with the antenna spring.
+        for (s in SIDES) {
+            c.save()
+            c.translate(s * r * 0.6f, -r * 0.62f)
+            c.rotate((s * 0.12f + clamp(p.antenna * 0.6f, -0.22f, 0.22f)) * RAD2DEG)
+            path.reset()
+            path.moveTo(0f, 0f)
+            path.cubicTo(s * r * 0.48f, r * 0.02f, s * r * 0.58f, r * 0.78f, s * r * 0.26f, r * 0.98f)
+            path.cubicTo(s * r * 0.04f, r * 1.08f, -s * r * 0.14f, r * 0.62f, 0f, 0f)
+            path.close()
+            if (ambient) {
+                fill.color = Color.BLACK
+                c.drawPath(path, fill)
+                c.drawPath(path, stroke)
+            } else {
+                fill.color = 0xFF7A5338.toInt()
+                c.drawPath(path, fill)
+            }
+            c.restore()
+        }
+        // Tag on the collar: the status light.
+        val tagY = r * 0.92f
+        if (ambient) {
+            stroke.color = withAlpha(p.bulb, 0.7f)
+            c.drawCircle(0f, tagY, r * 0.1f, stroke)
+        } else {
+            fill.color = p.bulb
+            if (!lite) fill.setShadowLayer(blur(r * (0.15f + 0.3f * clamp(p.pulse, 0f, 1f))), 0f, 0f, p.bulb)
+            c.drawCircle(0f, tagY, r * 0.11f, fill)
+            fill.clearShadowLayer()
+            fill.color = Color.argb(178, 255, 255, 255)
+            c.drawCircle(-r * 0.035f, tagY - r * 0.035f, r * 0.03f, fill)
+        }
+        // Face, then the nose on top of the muzzle.
+        val ox = p.lookX * r * 0.13f
+        val oy = p.lookY * r * 0.09f
+        if (ambient) faceSpec(0.36f, -0.16f, 0.42f, 0xFFB8BED6.toInt(), false)
+        else faceSpec(0.36f, -0.16f, 0.42f, 0xFF2B1E16.toInt(), false)
+        drawFace(c, p, t, r, lite)
+        oval(ox * 0.6f, r * 0.19f + oy * 0.5f, r * 0.14f, r * 0.1f)
+        if (ambient) {
+            stroke.color = line
+            c.drawOval(rect, stroke)
+        } else {
+            fill.color = 0xFF2B1E16.toInt()
+            c.drawOval(rect, fill)
+            fill.color = Color.argb(150, 255, 255, 255)
+            c.drawCircle(ox * 0.6f - r * 0.04f, r * 0.16f + oy * 0.5f, r * 0.03f, fill)
+        }
+    }
+
+    private fun ghostPath(pa: Path, r: Float, t: Float, wave: Boolean) {
+        val w = r * 0.92f
+        val base = r * 0.62f
+        pa.reset()
+        pa.moveTo(-w, r * 0.1f)
+        pa.cubicTo(-w, -r * 0.62f, -r * 0.55f, -r * 1.0f, 0f, -r * 1.0f)
+        pa.cubicTo(r * 0.55f, -r * 1.0f, w, -r * 0.62f, w, r * 0.1f)
+        pa.lineTo(w, base)
+        val seg = 2f * w / 4f
+        for (i in 0 until 4) {
+            val x0 = w - i * seg
+            val x1 = x0 - seg
+            val wob = if (wave) sin(t * 3f + i * 1.3f) * r * 0.05f else 0f
+            pa.quadTo((x0 + x1) / 2f, base + r * 0.24f + wob, x1, base + (if (i == 3) 0f else wob * 0.4f))
+        }
+        pa.close()
+    }
+
+    private fun drawGhost(c: Canvas, p: JarvisPose, t: Float, r: Float, ambient: Boolean, lite: Boolean) {
+        val line = 0xFF6E68A8.toInt()
+        stroke.strokeWidth = r * 0.03f
+        // Little arms, waving gently.
+        for (s in SIDES) {
+            val ay = r * 0.22f + (if (ambient) 0f else sin(t * 2.2f + s) * r * 0.05f)
+            c.save()
+            c.translate(s * r * 0.95f, ay)
+            c.rotate(s * 25f)
+            oval(0f, 0f, r * 0.16f, r * 0.1f)
+            if (ambient) { fill.color = Color.BLACK; c.drawOval(rect, fill); stroke.color = line; c.drawOval(rect, stroke) }
+            else { fill.color = 0xFFDAD4FA.toInt(); c.drawOval(rect, fill) }
+            c.restore()
+        }
+        // Body: a soft sheet with a waving hem and a glow in the mood colour.
+        ghostPath(path, r, t, !ambient)
+        if (ambient) {
+            fill.color = Color.BLACK
+            c.drawPath(path, fill)
+            stroke.color = line
+            c.drawPath(path, stroke)
+        } else {
+            shaded.shader = ghostShader
+            if (!lite) shaded.setShadowLayer(blur(r * 0.35f), 0f, 0f, withAlpha(p.bulb, 0.35f + 0.25f * clamp(p.pulse, 0f, 1f)))
+            c.drawPath(path, shaded)
+            shaded.clearShadowLayer()
+            shaded.shader = null
+            if (!lite) {
+                c.save()
+                c.clipPath(path)
+                shaded.shader = highlightShader
+                c.drawCircle(-r * 0.45f, -r * 0.55f, r * 0.55f, shaded)
+                shaded.shader = null
+                c.restore()
+            }
+            fill.color = Color.argb(a255(0.22f + 0.6f * clamp(p.blush, 0f, 1f)), 255, 140, 180)
+            for (s in SIDES) {
+                oval(s * r * 0.52f, r * 0.14f, r * 0.13f, r * 0.07f)
+                c.drawOval(rect, fill)
+            }
+        }
+        // Floating wisp above the head: the status light, swaying with the antenna spring.
+        val wx = sin(p.antenna) * r * 0.3f
+        val wy = -r * 1.22f + (if (ambient) 0f else sin(t * 2.6f) * r * 0.04f)
+        if (ambient) {
+            stroke.color = withAlpha(p.bulb, 0.7f)
+            c.drawCircle(wx, wy, r * 0.09f, stroke)
+        } else {
+            fill.color = p.bulb
+            if (!lite) fill.setShadowLayer(blur(r * (0.2f + 0.4f * clamp(p.pulse, 0f, 1f))), 0f, 0f, p.bulb)
+            c.drawCircle(wx, wy, r * 0.1f, fill)
+            fill.clearShadowLayer()
+            fill.color = Color.argb(178, 255, 255, 255)
+            c.drawCircle(wx - r * 0.035f, wy - r * 0.035f, r * 0.03f, fill)
+        }
+        if (ambient) faceSpec(0.3f, -0.2f, 0.12f, 0xFFB8BED6.toInt(), false)
+        else faceSpec(0.3f, -0.2f, 0.12f, 0xFF2A2440.toInt(), false)
+        drawFace(c, p, t, r, lite)
+    }
+
     // ── Parts ───────────────────────────────────────────────────────────────
 
     private fun drawEars(c: Canvas, p: JarvisPose, t: Float, r: Float, w: Float, lite: Boolean) {
@@ -210,9 +434,9 @@ class JarvisRenderer {
         val oy = p.lookY * r * 0.09f
         val ew = r * 0.12f * p.es
         val eh = r * 0.17f * p.es
-        val glow = if (lite) 0f else blur(r * 0.22f)
+        val glow = if (lite || !faceGlowOn) 0f else blur(r * 0.22f)
         faceGlow = glow
-        val faceColor = withAlpha(Palette.MINT, p.dim)
+        val faceColor = withAlpha(faceInk, p.dim)
         fill.color = faceColor
         stroke.color = faceColor
         if (glow > 0f) {
@@ -221,15 +445,15 @@ class JarvisRenderer {
         }
         for (side in SIDES) {
             val sz = if (p.eyes == Eye.QUESTION && side > 0) 1.12f else 1f
-            val cx = side * r * 0.32f + ox
-            val cy = -r * 0.05f + oy
+            val cx = side * r * eyeX + ox
+            val cy = r * eyeY + oy
             c.save()
             c.scale(1f, max(0.06f, p.eyeSwap), cx, cy)
             drawEye(c, eyeFor(p.eyes, side), cx, cy, ew * sz, eh * sz, p, t, side, lite, faceColor)
             c.restore()
         }
         val mx = ox * 0.6f
-        val my = r * (MOUTH_Y + 0.04f) + oy * 0.5f
+        val my = r * mouthY + oy * 0.5f
         c.save()
         c.scale(max(0.3f, p.mouthSwap), max(0.06f, p.mouthSwap), mx, my)
         drawMouth(c, p, t, r, mx, my, faceColor)
@@ -534,25 +758,28 @@ class JarvisRenderer {
         }
         fill.color = face
         drawMouth(c, p, t, r, ox * 0.6f, r * (MOUTH_Y + 0.04f) + oy * 0.5f, face)
-        if (p.badge != BadgeKind.NONE && p.badgeScale > 0.01f) {
-            // Outline badge: small, dim, burn-in safe.
-            val br = r * 0.27f
-            stroke.color = withAlpha(p.badgeColor, 0.8f)
-            stroke.strokeWidth = r * 0.035f
-            c.drawCircle(r * 0.98f, -r * 0.98f, br, stroke)
-            if (p.badge == BadgeKind.MAIL) {
-                c.save()
-                c.translate(r * 0.98f, -r * 0.98f)
-                envelope(c, br, withAlpha(p.badgeColor, 0.9f), 0, fillIt = false)
-                c.restore()
-            } else if (p.badge == BadgeKind.BANG || p.badge == BadgeKind.QUESTION) {
-                text.color = withAlpha(p.badgeColor, 0.9f)
-                text.textSize = br * 1.35f
-                c.drawText(if (p.badge == BadgeKind.BANG) "!" else "?", r * 0.98f,
-                    -r * 0.98f + br * 0.1f - (text.ascent() + text.descent()) / 2f, text)
-            }
-        }
+        if (p.badge != BadgeKind.NONE && p.badgeScale > 0.01f) drawAmbientBadge(c, p, r)
         c.restore()
+    }
+
+    /** Outline badge for ambient: small, dim, burn-in safe. */
+    private fun drawAmbientBadge(c: Canvas, p: JarvisPose, r: Float) {
+        // Outline badge: small, dim, burn-in safe.
+        val br = r * 0.27f
+        stroke.color = withAlpha(p.badgeColor, 0.8f)
+        stroke.strokeWidth = r * 0.035f
+        c.drawCircle(r * 0.98f, -r * 0.98f, br, stroke)
+        if (p.badge == BadgeKind.MAIL) {
+            c.save()
+            c.translate(r * 0.98f, -r * 0.98f)
+            envelope(c, br, withAlpha(p.badgeColor, 0.9f), 0, fillIt = false)
+            c.restore()
+        } else if (p.badge == BadgeKind.BANG || p.badge == BadgeKind.QUESTION) {
+            text.color = withAlpha(p.badgeColor, 0.9f)
+            text.textSize = br * 1.35f
+            c.drawText(if (p.badge == BadgeKind.BANG) "!" else "?", r * 0.98f,
+                -r * 0.98f + br * 0.1f - (text.ascent() + text.descent()) / 2f, text)
+        }
     }
 
     // ── Particles ───────────────────────────────────────────────────────────
@@ -637,6 +864,16 @@ class JarvisRenderer {
         )
         visorShader = LinearGradient(
             0f, -r * 0.42f, 0f, r * 0.42f, Palette.VISOR_TOP, Palette.VISOR_BOTTOM, Shader.TileMode.CLAMP,
+        )
+        dogShader = LinearGradient(
+            0f, -r * 0.9f, 0f, r * 0.82f,
+            intArrayOf(0xFFEFCDA4.toInt(), 0xFFD4A373.toInt(), 0xFFB07D4F.toInt()), floatArrayOf(0f, 0.55f, 1f),
+            Shader.TileMode.CLAMP,
+        )
+        ghostShader = LinearGradient(
+            0f, -r, 0f, r * 0.86f,
+            intArrayOf(0xFFFFFFFF.toInt(), 0xFFEAE6FF.toInt(), 0xFFC9C1F5.toInt()), floatArrayOf(0f, 0.55f, 1f),
+            Shader.TileMode.CLAMP,
         )
         val teal0 = Color.argb(0, 45, 212, 191)
         scanShader = LinearGradient(

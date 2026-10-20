@@ -10,8 +10,11 @@ import androidx.wear.watchface.WatchFaceService
 import androidx.wear.watchface.WatchFaceType
 import androidx.wear.watchface.WatchState
 import androidx.wear.watchface.style.CurrentUserStyleRepository
+import androidx.wear.watchface.style.UserStyleSchema
 
 class JarvisWatchFaceService : WatchFaceService() {
+
+    override fun createUserStyleSchema(): UserStyleSchema = Styles.schema(this)
 
     override suspend fun createWatchFace(
         surfaceHolder: SurfaceHolder,

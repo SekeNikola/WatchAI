@@ -51,6 +51,9 @@ class DebugActivity : Activity() {
         button("Night (02:00)", "hour:2")
         button("Morning (08:00)", "hour:8")
         button("Real time", "hour:real")
+        header("Character (overrides the style)")
+        com.jarvis.avatar.Character.entries.forEach { button(it.displayName, "character:${it.id}") }
+        button("Use selected style", "character:style")
         header("States (held)")
         BotState.entries.forEach { button(it.name.lowercase(), "state:${it.name}") }
         header("Emotes")

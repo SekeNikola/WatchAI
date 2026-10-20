@@ -50,6 +50,11 @@ class FacePainter(private val context: Context) {
     private var cachedBattery = -1
     private var cachedWidth = -1f
 
+    /** Who is drawn. */
+    var character: com.jarvis.avatar.Character
+        get() = avatar.character
+        set(v) { avatar.character = v }
+
     /** Avatar hit circle from the last interactive frame, in surface pixels. */
     var hitX = 0f; private set
     var hitY = 0f; private set

@@ -33,6 +33,8 @@ android {
 dependencies {
     implementation(project(":avatar"))
     implementation("androidx.wear.watchface:watchface:1.2.1")
+    // On-watch Customize screen (character picker).
+    implementation("androidx.wear.watchface:watchface-editor:1.2.1")
 
     // Test-only: renders the real android.graphics Canvas on the JVM for screenshots.
     testImplementation("junit:junit:4.13.2")
