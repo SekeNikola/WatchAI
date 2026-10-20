@@ -90,6 +90,73 @@ class ScreenshotTest {
         }
     }
 
+    /** Images for the README: docs/img/. */
+    @Test
+    fun renderReadmeAssets() {
+        val dir = File("../docs/img").apply { mkdirs() }
+        fun out(name: String, b: Bitmap) = File(dir, "$name.png").outputStream().use { b.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        val chars = com.jarvis.avatar.Character.entries
+
+        // Hero: the three characters side by side.
+        out("hero", strip(chars.map { ch ->
+            ch.displayName to frame(character = ch) { e -> e.setState(BotState.IDLE, force = true); 1.6f }
+        }, 340))
+
+        // Standby (ambient) for each character.
+        out("standby", strip(chars.map { ch ->
+            ch.displayName to frame(ambient = true, character = ch) { e -> e.update(0.5f); 0.5f }
+        }, 300))
+
+        // Mood gallery per character.
+        for (ch in chars) {
+            val moods = listOf<Pair<String, Bitmap>>(
+                "Love (tap)" to frame(character = ch) { e -> e.update(0.5f); e.triggerEmote(Emote.LOVE, 1.8f); 0.95f },
+                "Angry (keep tapping)" to frame(character = ch) { e -> e.setState(BotState.ANGRY, force = true); 1.6f },
+                "Notification" to frame(character = ch) { e -> e.setState(BotState.NOTIFY, force = true); 1.6f },
+                "Music playing" to frame(character = ch) { e -> e.music = true; 3.0f },
+                "Charging" to frame(battery = 64, charging = true, character = ch) { e -> e.setState(BotState.CHARGING, force = true); 3.2f },
+                "Fully charged" to frame(battery = 100, charging = true, character = ch) { e -> e.setState(BotState.FULL, force = true); 2.2f },
+                "Low battery" to frame(battery = 12, character = ch) { e -> e.setState(BotState.WORRIED, force = true); 1.6f },
+                "Asleep at night" to frame(character = ch) { e -> e.setState(BotState.SLEEPING, force = true); 1.6f },
+            )
+            out("moods_${ch.id}", grid(moods, 4, 260))
+        }
+    }
+
+    private fun strip(items: List<Pair<String, Bitmap>>, cell: Int) = grid(items, items.size, cell)
+
+    /** Faces in a grid on a dark background, each with a caption. */
+    private fun grid(items: List<Pair<String, Bitmap>>, cols: Int, cell: Int): Bitmap {
+        val pad = cell / 12
+        val label = cell / 6
+        val rows = (items.size + cols - 1) / cols
+        val bmp = Bitmap.createBitmap(cols * (cell + pad) + pad, rows * (cell + label + pad) + pad, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        c.drawColor(0xFF0D0F1E.toInt())
+        val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFE8ECFF.toInt(); textSize = cell / 11f; textAlign = Paint.Align.CENTER
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        }
+        val clip = Paint(Paint.ANTI_ALIAS_FLAG)
+        items.forEachIndexed { i, (name, face) ->
+            val x = pad + (i % cols) * (cell + pad)
+            val y = pad + (i / cols) * (cell + label + pad)
+            // Round watch: clip the square render to a circle with a thin bezel.
+            val scaled = Bitmap.createScaledBitmap(face, cell, cell, true)
+            val round = Bitmap.createBitmap(cell, cell, Bitmap.Config.ARGB_8888)
+            Canvas(round).apply {
+                drawCircle(cell / 2f, cell / 2f, cell / 2f, clip.apply { shader = null; color = Color.WHITE })
+                drawBitmap(scaled, 0f, 0f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_IN)
+                })
+            }
+            c.drawCircle(x + cell / 2f, y + cell / 2f, cell / 2f + 3f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF2B2F4A.toInt() })
+            c.drawBitmap(round, x.toFloat(), y.toFloat(), null)
+            c.drawText(name, x + cell / 2f, y + cell + label * 0.72f, text)
+        }
+        return bmp
+    }
+
     /** Picker icon: the character alone on a dark disc. */
     private fun icon(ch: com.jarvis.avatar.Character): Bitmap {
         val n = 240

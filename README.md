@@ -1,216 +1,234 @@
-# Cute Companion — Jarvis, Biscuit & Boo (Wear OS watch face)
+# Cute Companion
 
-The Jarvis avatar from Jarvis2.0 living on the watch as an animated watch face.
-Avatar only: Gemini (already on the watch) stays the assistant. Personal use, sideloaded.
-No companion app, no mic, no LLM calls, no network.
+**A living, animated companion for your Wear OS watch face.** Pick a robot, a puppy or a little
+ghost. It floats, blinks, looks around, gets bored when you ignore it, falls asleep at night,
+bops along to your music, shows a letter when you have unread notifications, sweats when the
+battery is low and celebrates when it's fully charged.
 
-![states](docs/contact_sheet.png)
+![The three characters](docs/img/hero.png)
 
-## Characters
+<p align="center"><b>Jarvis</b> the robot · <b>Biscuit</b> the puppy · <b>Boo</b> the ghost</p>
 
-Pick one on the watch: **long-press the face → Customize → Character** (the only, and first,
-setting). All characters share the engine, every emotion, tap ladder, notification, music and
-battery reaction; each only brings its own body.
+---
 
-| | Body | Status light |
-|---|---|---|
-| **Jarvis** | periwinkle robot dome, dark visor, mint LED face | antenna bulb |
-| **Biscuit** (dog) | tan head, floppy ears that wiggle with the antenna spring, cream muzzle, black nose | tag on the red collar |
-| **Boo** (ghost) | lavender sheet with a waving hem, little arms, glows in the mood colour | floating wisp above the head |
+## On a real watch
 
-![dog](docs/sheet_dog.png)
-![ghost](docs/sheet_ghost.png)
+Screenshots from a Pixel Watch 2 (Wear OS 7) while music was playing. Top: awake. Bottom:
+standby (always-on display).
 
-To add a character: add it to `Character` (avatar), draw its body in `JarvisRenderer.drawCritter`
-(set where the shared face sits with `faceSpec`), add an icon + name in `Styles`, and run the
-screenshot test — it renders a gallery and the picker icon (`char_<id>.png`) for every character.
+![On a Pixel Watch 2: awake and standby](docs/img/device.png)
 
-## Architecture
+## Features
 
+- 🎭 **Three characters**, chosen from the watch face's *Customize* screen. All of them share
+  the same personality and every reaction.
+- 🌊 **Always alive**: a floating bob, random blinks (sometimes double), glances around, and smooth
+  springy transitions between every mood with no hard cuts.
+- 👆 **Tap it.** One or two taps bring hearts. Keep poking and it gets bored, then annoyed, then
+  angry. Three quick taps while it's angry make it dizzy. Leave it alone and it calms back down.
+- 🎵 **Music**: notes float out of its head and it sways while something is playing, on the
+  watch or on your phone.
+- ✉️ **Notifications**: a hop and a bouncing letter when one arrives, and a small letter badge
+  for as long as anything is unread.
+- 🔋 **Battery**: worried with sweat drops at 15% or below, lightning bolts while charging, and
+  a spin, stars and a proud grin at 100%.
+- 🌙 **Time of day**: a love-struck greeting on your first look in the morning, heavy eyelids in the
+  evening, an occasional yawn late at night, and asleep with floating *z*'s after midnight.
+- 😴 **Gets bored** after 30–60 s without attention: half-lidded, sighing, glancing away.
+- 🖤 **Standby that's kind to your screen**: outline-only, dim, redrawn once a minute, shifting a
+  couple of pixels each minute so nothing burns in.
+- 🔒 **Private and light**: no internet, no microphone, no account. It only reads the *category* of a
+  notification (never its content), and has no background polling.
+
+## Meet the characters
+
+### Jarvis, the robot
+A periwinkle dome with a dark visor and a mint LED face. His antenna bulb is his mood light.
+
+![Jarvis moods](docs/img/moods_jarvis.png)
+
+<details>
+<summary><b>Biscuit, the puppy</b>: floppy ears, a cream muzzle, and a collar tag that lights up</summary>
+
+![Biscuit moods](docs/img/moods_dog.png)
+</details>
+
+<details>
+<summary><b>Boo, the ghost</b>: a soft sheet with a waving hem and a glowing wisp above the head</summary>
+
+![Boo moods](docs/img/moods_ghost.png)
+</details>
+
+### Standby (always-on)
+
+![Standby for all three characters](docs/img/standby.png)
+
+The character keeps its mood in standby too: asleep at night, worried on low battery, a small
+note while music plays, a letter while something is unread.
+
+## Install
+
+This is a sideloaded watch face (an APK you install yourself), not a Play Store listing.
+See [Why not the Play Store?](#why-not-the-play-store).
+
+**You need:** a Wear OS 3+ watch (round screens look best) and a computer with
+[Android platform-tools](https://developer.android.com/tools/releases/platform-tools) (`adb`).
+To build it yourself you also need JDK 17 and the Android SDK (Android Studio includes both).
+
+### 1. Get the APK
+
+Build it:
+
+```bash
+./gradlew :watchface:assembleRelease      # watchface/build/outputs/apk/release/watchface-release.apk
 ```
-avatar/      Reusable character module. Plain android.graphics, no Wear deps.
-  JarvisPose      the parameters one frame is drawn from (eyes, mouth, squash, tilt, colour…)
-  JarvisRenderer  draws a pose; 1:1 port of Jarvis2.0 desktop/src/jarvis/draw.ts
-  JarvisEngine    tweens, springs, blinks, emotes, particles; port of engine.ts
-  BotState        the emotion table (one row of parameters per emotion) + Emote
-  Ease            easing curves from core/anim.ts
 
-watchface/   The Wear OS app (Jetpack Watchface, CanvasRenderer2, hardware canvas).
-  JarvisWatchFaceService   entry point, tap listener
-  JarvisCanvasRenderer     frame loop, ambient transitions, battery + debug receivers
-  FacePainter              layout: time, Jarvis, date + battery; interactive and ambient
-  MoodDirector             decides the emotion from clock, battery, taps, wake, notifications
-  AssistantLauncher        tap → system assistant intent
-  JarvisNotificationListener  optional; notifications (envelope, reactions) and music
-  Styles + CharacterEditorActivity  the Character style setting and its on-watch picker
-  AvatarBus                in-process command mailbox (debug, notifications)
-  src/debug/DebugActivity  on-watch debug screen (debug builds only)
+### 2. Turn on debugging on the watch
+
+1. **Settings → System → About → Versions**, then tap **Build number** 7 times.
+2. **Settings → Developer options**: turn on **ADB debugging** and **Wireless debugging**.
+3. Keep the watch and computer on the same Wi-Fi. Leave the *Wireless debugging* screen open
+   while connecting, because watches turn Wi-Fi off quickly to save battery.
+
+### 3. Pair, connect and install
+
+```bash
+# one time: "Pair new device" on the watch shows an IP:port and a 6-digit code
+adb pair <watch-ip>:<pairing-port> <code>
+
+# every time: the IP:port shown on the Wireless debugging screen
+adb connect <watch-ip>:<port>
+adb install -r watchface-release.apk
 ```
 
-**Frame flow:** `render()` drains AvatarBus, then `MoodDirector.update()` picks a `BotState`,
-then `JarvisEngine.update(t)` eases every parameter toward that state, then
-`engine.pose()` fills one reused `JarvisPose`, then `JarvisRenderer.draw()`.
+### 4. Set the face and pick a character
 
-**Fluid transitions:** every numeric parameter (gaze, tilt, squash, eye scale, float
-speed and amplitude, lids, brightness, blush, bulb colour) eases toward the new state with
-the desktop's exponential smoothing, and the antenna is a damped spring. Eye and mouth
-shapes are discrete, so a change squashes the old shape out (80 ms) and springs the new
-one in (160 ms) instead of cutting.
+1. Long-press your current watch face, swipe to the end, tap **+ Add**, and choose **Cute Companion**.
+2. Long-press it again → **Customize** → **Character** → *Jarvis*, *Biscuit* or *Boo*.
 
-**Performance:** no allocations in the steady-state draw loop. Paints, paths, rects and
-shaders are reused, shaders are rebuilt only when the size changes, particles are a
-fixed pool and strings are rebuilt once a minute. Interactive mode draws at about 60 fps
-(`FRAME_MS`). Ambient mode draws once a minute: black background, outline-only Jarvis,
-no glow, no gradients and no animation. It shifts 2 px each minute for burn-in safety and
-drops anti-aliasing on low-bit screens.
+### 5. Optional: notifications and music
 
-## Emotions and what triggers them
+The letter badge, notification reactions and music notes need notification access. Wear OS
+has no settings screen for that, so grant it with adb:
 
-| Emotion | Trigger |
+```bash
+adb shell cmd notification allow_listener com.jarvis.watchface/com.jarvis.watchface.JarvisNotificationListener
+# to undo: ... disallow_listener ...
+```
+
+Without it, everything else (moods, taps, battery, time of day) still works.
+
+## Moods at a glance
+
+| What happens | How the character reacts |
 |---|---|
-| idle | default: floating bob, random blinks (sometimes double), occasional look-around |
-| tap ladder | each tap hops; taps 1–2 **love** (hearts), 3–4 **bored**, 5–6 **annoyed**, 7+ **angry**; three quick taps while angry → **dizzy**, then happy. Calms down a rung every 3 s after 8 s untouched |
-| notify (envelope) | a notification arrives: reminder/alarm/event 6 s, others 3 s, 12 s if it arrived while hidden |
-| envelope badge | any unread notification in the stream (any state without its own badge) |
-| music | a media session is *playing* (watch or mirrored from the phone): notes float out of his head, gentle sway; a small outlined note in ambient |
-| charging | on the charger. Spins once with sparks on plug-in |
-| worried | battery at or below 15% and not charging |
-| bored | 30–60 s (random) with no tap. Sighs and the occasional yawn |
-| sleeping | the "bored" timeout during the drowsy hours (about 23:00–05:30) |
-| drowsy idle | from 21:00 the lids get heavier and the face dims (desktop curve) |
-| love emote | first wrist raise of the morning (05–11) |
-| yawn emote | wrist raise late at night (50%, at most every 20 min) |
-| surprised emote | Jarvis "notices you" 1.4 s after a wrist raise while bored or asleep, and on notifications |
+| Nothing | floats, blinks, looks around |
+| 1–2 taps | ❤️ love: heart eyes, hearts, blush |
+| 3–4 taps | 😑 bored: sighs |
+| 5–6 taps | 😒 annoyed: slanted brow, little shake |
+| 7+ taps | 😠 angry: frown, red light, shaking |
+| 3 quick taps while angry | 😵 dizzy, then happy and over it |
+| 30–60 s without a tap | 🥱 bored (asleep instead, late at night) |
+| Notification arrives | 😮 hop, then a bouncing ✉️ |
+| Anything unread | small ✉️ badge |
+| Music playing | 🎵 notes and a gentle sway |
+| Charging | ⚡ lightning bolts, happy face |
+| 100% on the charger | ⭐ spin, sparks, star eyes, then a content glow |
+| Battery ≤ 15% | 😰 worried, sweat drops, blinking orange light |
+| Evening / night | heavier eyelids, yawns, asleep with *z*'s |
+| First look in the morning | 😍 love |
 
-All the original desktop states (working, thinking, searching, question, error, finished,
-ratelimit, dizzy, speaking) and emotes (love, surprised, proud, wink, yawn, happy, annoyed)
-are ported and can be triggered from debug.
+## Good to know
 
-**Proposed designs** (not in the original, built only from its existing parts; tune in
-`BotState.kt`):
-- **annoyed / angry**: the annoyed eyes (slanted brow); angry adds a frown, flashing red light,
-  "!" badge, flushed cheeks and a jittery float.
-- **full**: on reaching 100% on the charger: spin and sparks, star eyes, then a content green pose.
-- **bored**: narrowed eyes at 75% lids, glancing down-left, flat mouth, slight tilt, slow
-  shallow float, droopy antenna, grey-mint bulb.
-- **worried**: wide eyes looking up, wavy mouth, sweat drops, nervous quick float, amber
-  blinking bulb, amber dot badge.
-- **charging**: happy eyes and grin, green bulb, breathing, blush. The entrance reuses
-  "finished".
+- **Battery:** animation runs only while the screen is on, at about 60 fps for the few seconds you're
+  looking. Standby redraws once a minute. Notification and music detection use system callbacks,
+  with no polling.
+- **Notification card:** when a notification arrives, Wear OS shows its own card on top of the
+  face. The reaction is held for a few seconds, so it's still playing when you swipe the card away.
+- **Charging screen:** some watches (including Pixel) show a charging screen over any face. Swipe
+  it away to see the lightning bolts.
+- **Taps never open the assistant.** Use your watch's button for Gemini or Assistant.
 
-## How to add a new emotion
+### Why not the Play Store?
 
-1. Add a row to `avatar/.../BotState.kt`. Every field is a parameter (eye, mouth, badge,
-   colour, lookX/lookY, tilt, floatSpeed/floatAmp, lids, dim, blush, antennaRest, sweat, zz…).
-2. Optional one-shot entrance (hop, spin, shake): add a case in `JarvisEngine.setState`.
-3. Optional bulb pulse pattern: add a case in `JarvisEngine.pose`.
-4. Decide when it happens in `MoodDirector.choose()`.
-5. Ambient look: add a case in `FacePainter.ambientPose`.
-6. Run the screenshot test to see it (below). It appears in the debug screen automatically.
+Since 2026 the Play Store only accepts watch faces built with Google's declarative
+*Watch Face Format*, which can't run code. This face is drawn in code, which is what makes the
+smooth mood blending, music and notification awareness and the tap moods possible, so it's
+distributed as a sideloaded APK.
 
-New eye or mouth *shapes* go in `Eye`/`Mouth` (`JarvisPose.kt`) and `JarvisRenderer.drawEye/drawMouth`.
+## For developers
 
-## Build and run
+### Build and test
 
-Requirements: Android SDK, JDK 17 (Android Studio's `jbr` works). No emulator is needed.
-
-```powershell
-$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
-.\gradlew :watchface:assembleDebug          # APK: watchface/build/outputs/apk/debug/
-.\gradlew :watchface:testDebugUnitTest      # mood logic tests + renders every state
+```bash
+./gradlew :watchface:assembleDebug        # debug build (adds an on-watch debug screen)
+./gradlew :watchface:testDebugUnitTest    # mood logic tests + renders every state
 ```
 
-The screenshot test renders the real face for every state, emote and ambient pose with
-Robolectric's native graphics (the same `android.graphics` code that runs on the watch) into
-`watchface/build/screens/`, with a `_contact_sheet.png` overview.
+The screenshot test renders the real watch face with Robolectric's native graphics (the same
+`android.graphics` code the watch runs) for every character, mood and standby pose. Output goes to
+`watchface/build/screens/`, and the images in this README are regenerated into `docs/img/`.
 
-### Sideload to the watch over Wi-Fi
+### Try every mood (debug build)
 
-1. Watch: **Settings → System → About → Versions**, tap **Build number** 7 times.
-2. **Settings → Developer options**: turn on **ADB debugging** and **Debug over Wi-Fi**
-   (Wear OS 3+: **Wireless debugging**). Keep the watch on the same Wi-Fi as the PC.
-   Wear OS drops Wi-Fi when it's on Bluetooth to the phone, so keep that screen open
-   (or turn Bluetooth off briefly) while connecting.
-3. Wear OS 3+ needs pairing once: tap **Pair new device** and note the pairing IP:port and code.
-   ```powershell
-   adb pair 192.168.0.29:<pair-port> <code>
-   ```
-4. Connect (the port on the Wireless debugging screen changes every time it's toggled):
-   ```powershell
-   .\jarvis.ps1 connect 192.168.0.29:40857
-   .\jarvis.ps1 install      # builds, installs, sets as the watch face
-   ```
-   If the face isn't set automatically, long-press the current face, swipe to the end,
-   tap **+**, and pick **Jarvis**.
+Open **Cute Companion** from the watch's app list for buttons, or from a computer:
 
-### Debug: trigger any state
-
-On the watch (debug build), open **Jarvis debug** from the app list. Each button
-applies a command and returns to the face.
-
-From the PC:
-
-```powershell
-.\jarvis.ps1 cmd state:bored        # any BotState: idle, listening, worried, charging, sleeping, dizzy…
-.\jarvis.ps1 cmd emote:love         # love, surprised, proud, wink, yawn, happy, annoyed (optional :seconds)
-.\jarvis.ps1 cmd clear              # release holds, back to live signals
-.\jarvis.ps1 cmd bored              # skip the bored timer
-.\jarvis.ps1 cmd notify:remind      # remind | message | other
-.\jarvis.ps1 cmd battery:10:false   # fake battery (level:charging), battery:real to undo
-.\jarvis.ps1 cmd hour:2             # fake time of day for moods, hour:real to undo
-.\jarvis.ps1 cmd tap                # listening pose without launching the assistant
-.\jarvis.ps1 cmd unread:2           # fake the unread count (envelope badge); unread:0 hides it
-.\jarvis.ps1 cmd character:dog       # jarvis | dog | ghost; character:style returns to the selected one
-.\jarvis.ps1 cmd music:on           # music notes on/off without real playback
-.\jarvis.ps1 cmd assist             # launch the assistant without the pose
-.\jarvis.ps1 shot bored             # screenshot from the watch into screens/
-.\jarvis.ps1 log                    # logs (which assistant intent worked, commands)
+```bash
+adb shell am broadcast -a com.jarvis.watchface.DEBUG -p com.jarvis.watchface --es cmd <command>
 ```
 
-The raw adb form is
-`adb shell am broadcast -a com.jarvis.watchface.DEBUG -p com.jarvis.watchface --es cmd state:bored`.
-The debug receiver and screen exist only in debug builds.
+| Command | Effect |
+|---|---|
+| `character:dog` | `jarvis` / `dog` / `ghost` (`character:style` returns to your pick) |
+| `state:angry` | hold any mood (`idle`, `bored`, `worried`, `charging`, `full`, `sleeping`, `dizzy`, …) |
+| `emote:love` | `love`, `surprised`, `proud`, `wink`, `yawn`, `happy`, `annoyed` |
+| `tap`, `bored`, `notify:remind` | simulate a tap, skip the bored timer, a notification |
+| `music:on`, `unread:2` | fake music / unread count |
+| `battery:10:false`, `hour:2` | fake battery level and charging, or time of day (`:real` to undo) |
+| `clear` | back to live signals |
 
-## Taps (no assistant)
+On Windows, `jarvis.ps1` wraps these: `.\jarvis.ps1 cmd state:angry`, `.\jarvis.ps1 install`.
 
-Gemini is on the watch's physical button, so tapping Jarvis never launches it. Taps climb
-his mood ladder instead (see the table above and `MoodDirector.onTap`). `AssistantLauncher` is
-kept for the `assist` debug command: on a Pixel Watch 2 (Wear OS 7) `ACTION_ASSIST` opens
-Gemini, and `ACTION_VOICE_COMMAND` resolves to a stub that closes immediately.
+### How it's built
 
-## Notifications (optional)
+```
+avatar/      Reusable character module (plain android.graphics, no Wear dependencies)
+  JarvisPose       the parameters one frame is drawn from (eyes, mouth, squash, tilt, colours…)
+  JarvisRenderer   draws a pose for any Character; shared face, per-character bodies
+  JarvisEngine     tweens, springs, blinks, emotes, particles (hearts, notes, bolts, z's…)
+  BotState         the mood table: one row of parameters per mood
+  Character        Jarvis, Dog, Ghost
 
-`JarvisNotificationListener` does two things:
+watchface/   The Wear OS watch face (Jetpack Watchface, hardware canvas)
+  JarvisCanvasRenderer   frame loop, standby, battery, debug input
+  FacePainter            layout: time, character, date and battery
+  MoodDirector           decides the mood from clock, battery, taps, notifications, music
+  JarvisNotificationListener   unread count, notification reactions, music detection
+  Styles + CharacterEditorActivity   the Character setting and its picker
+```
 
-- **Envelope badge while anything is unread.** As long as there is a notification in the
-  swipe-up list (ongoing ones like media and timers don't count), Jarvis carries an envelope
-  in his speech bubble, both interactive and in ambient. Clear the notifications and it pops away.
-- **A reaction on arrival.** A surprised hop, then the bouncing NOTIFY pose (wide eyes,
-  amber light, envelope): 6 s for reminders/alarms/events, 3 s otherwise. If it arrived while
-  the face was hidden (Wear's notification card covers it and the face pauses), the pose is
-  held for 12 s from when the face is visible again.
+Each frame, `MoodDirector` picks a mood, `JarvisEngine` eases every parameter toward it,
+and `JarvisRenderer` draws the result. A mood is just a row of numbers (eye shape, mouth, colour, gaze,
+tilt, float speed, eyelids, blush…), so moods blend into each other instead of switching.
+The draw loop allocates nothing: paints, paths and shaders are reused.
 
-- **Music.** Being a notification listener also lets Jarvis watch active media sessions
-  (`MediaSessionManager`, callbacks only). While one is playing, notes float out of his head
-  and he sways; pause and they stop.
+### Add a mood
 
-Tested on a Pixel Watch 2 (Wear OS 7): lighting the screen from code when a notification
-arrives makes Wear open its full-screen card, so Jarvis never wakes the screen. The watch
-just buzzes, and Jarvis shows the envelope at the next glance.
+1. Add a row to `BotState.kt`.
+2. Optional entrance (hop, spin, shake): a case in `JarvisEngine.setState`.
+3. Decide when it happens in `MoodDirector.choose()`.
+4. Run the screenshot test to see it.
 
-- **Permission:** notification access (`BIND_NOTIFICATION_LISTENER_SERVICE`). There's no
-  runtime prompt. It does nothing until you grant it, and Wear OS has no settings screen for
-  it, so use adb: `.\jarvis.ps1 notify-access` (undo: `notify-revoke`). Only the notification
-  *category* is read, never its content.
-- **Battery:** close to zero. The system calls the listener only when a notification is
-  posted, so there's no polling or wakelock. The face reacts on its next frame (interactive)
-  or on the next wake (ambient). It never forces the screen on.
+### Add a character
 
-Calendar and timer awareness are covered by the same notifications (calendar reminders and
-finished timers post reminder/alarm notifications). A separate calendar query would need
-`READ_CALENDAR` plus periodic work, so it was left out.
+1. Add it to `Character.kt`.
+2. Draw its body in `JarvisRenderer.drawCritter`, and say where the shared face sits with `faceSpec(...)`.
+3. Add a name and icons in `Styles.kt` and `strings.xml` (keep the `_small` icons ~64 px; the
+   style schema must stay under 50 KB, and a test checks it).
+4. Run the screenshot test. It renders the character's gallery and its picker icons.
 
 ## Credits
 
-Character and engine ported from Jarvis2.0 (`desktop/src/jarvis`), whose engine is based
-on BotEngine/coucou (MIT, © 2026 Louis Raillé). See Jarvis2.0 `THIRD_PARTY_NOTICES-coucou.txt`.
+The Jarvis character and animation engine come from the *Jarvis2.0* desktop assistant, whose
+engine is based on [BotEngine / coucou](THIRD_PARTY_NOTICES-coucou.txt) (MIT, © 2026 Louis Raillé).
+Biscuit and Boo were designed for this project using the same parts.
