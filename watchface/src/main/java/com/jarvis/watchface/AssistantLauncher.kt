@@ -13,10 +13,13 @@ import android.util.Log
 object AssistantLauncher {
     private const val TAG = "JarvisAssist"
 
+    // Tested on a Pixel Watch 2 (Wear OS 7 / API 37): ACTION_ASSIST and VOICE_ASSIST open
+    // Gemini (com.google.android.wearable.assistant); ACTION_VOICE_COMMAND resolves to a
+    // FakeSettingsActivity stub that closes at once, so it is last and stubs are skipped.
     private val ACTIONS = listOf(
-        Intent.ACTION_VOICE_COMMAND,
         Intent.ACTION_ASSIST,
         "android.intent.action.VOICE_ASSIST",
+        Intent.ACTION_VOICE_COMMAND,
     )
 
     /** Last outcome, for the debug screen and logcat. */
@@ -29,6 +32,7 @@ object AssistantLauncher {
         for (action in ACTIONS) {
             val intent = Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             val target = intent.resolveActivity(pm) ?: continue
+            if (target.className.contains("Fake")) continue
             try {
                 context.startActivity(intent)
                 lastResult = "$action → ${target.flattenToShortString()}"
