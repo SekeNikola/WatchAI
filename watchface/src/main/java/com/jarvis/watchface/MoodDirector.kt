@@ -9,11 +9,14 @@ import kotlin.random.Random
 /**
  * Decides what Jarvis feels from the signals a watch face can actually observe:
  * the clock, the battery, taps, wrist raises (ambient → interactive) and,
- * if access is granted, notifications. Gemini's own state is NOT observable,
- * so the tap "listening" pose is purely timed.
+ * if access is granted, notifications and media.
+ *
+ * Taps climb a ladder: love → bored → annoyed → angry, and rapid tapping while
+ * angry makes him dizzy. He calms down a step at a time when left alone.
+ * (The assistant is on the watch's physical button, so taps never launch it.)
  *
  * Priority, highest first:
- *   debug hold → listening (after a tap) → remind (after a notification)
+ *   debug hold → dizzy / tap mood → notify (after a notification)
  *   → full / charging → low battery (worried) → bored / asleep at night → idle
  *
  * All times are uptime milliseconds.
@@ -32,7 +35,11 @@ class MoodDirector(private val engine: JarvisEngine) {
 
     private var lastInteraction = 0L
     private var boredAfterMs = randomBoredDelay()
-    private var listenUntil = 0L
+    private var taps = 0
+    private var lastTap = -CALM_DELAY_MS
+    private var lastCalmStep = 0L
+    private var dizzyUntil = 0L
+    private val rapid = LongArray(3) { -RAPID_MS }
     private var remindUntil = 0L
     private var pendingNotify: String? = null
     private var pendingNotifyAt = 0L
@@ -56,11 +63,29 @@ class MoodDirector(private val engine: JarvisEngine) {
 
     fun hourOfDay(realHour: Float): Float = if (hourOverride.isNaN()) realHour else hourOverride
 
-    /** A tap on Jarvis: hop, then the timed listening pose while Gemini opens. */
+    /** A tap on Jarvis: one rung up the love → bored → annoyed → angry ladder. */
     fun onTap(now: Long) {
         touch(now)
         engine.squash()
-        listenUntil = now + LISTEN_MS
+        if (now < dizzyUntil) return
+        rapid[0] = rapid[1]; rapid[1] = rapid[2]; rapid[2] = now
+        if (tapMood(taps) == BotState.ANGRY && now - rapid[0] < RAPID_MS) {
+            // Three quick taps while angry: dizzy, then over it (the desktop "slap" behaviour).
+            dizzyUntil = now + DIZZY_MS
+            taps = 0
+            engine.setState(BotState.DIZZY)
+            return
+        }
+        taps++
+        lastTap = now
+        lastCalmStep = now
+        when (tapMood(taps)) {
+            null -> engine.triggerEmote(Emote.LOVE, 1.6f)
+            BotState.BORED -> engine.sigh()
+            BotState.ANNOYED -> engine.shake(0.04f)
+            BotState.ANGRY -> engine.shake(0.09f)
+            else -> Unit
+        }
     }
 
     /** The screen came back from ambient (wrist raise / touch). */
@@ -149,6 +174,19 @@ class MoodDirector(private val engine: JarvisEngine) {
     /** Picks the base state; call every frame (and once per ambient minute). */
     fun update(now: Long, hour: Float) {
         engine.drowsy = drowsiness(hour)
+        if (dizzyUntil in 1..now) {
+            dizzyUntil = 0
+            engine.triggerEmote(Emote.HAPPY)
+        }
+        // Left alone, he calms down one rung at a time.
+        if (taps > 0 && now - lastTap > CALM_DELAY_MS && now - lastCalmStep > CALM_STEP_MS) {
+            lastCalmStep = now
+            taps = when (tapMood(taps)) {
+                BotState.ANGRY -> 6
+                BotState.ANNOYED -> 4
+                else -> 0
+            }
+        }
         if (noticeAt in 1..now) {
             noticeAt = 0
             touch(now)
@@ -159,7 +197,8 @@ class MoodDirector(private val engine: JarvisEngine) {
 
     private fun choose(now: Long, hour: Float): BotState {
         hold?.let { return it }
-        if (now < listenUntil) return BotState.LISTENING
+        if (now < dizzyUntil) return BotState.DIZZY
+        tapMood(taps)?.let { return it }
         if (now < remindUntil) return BotState.NOTIFY
         if (charging) return if (batteryLevel >= 100) BotState.FULL else BotState.CHARGING
         if (batteryLevel <= LOW_BATTERY) return BotState.WORRIED
@@ -198,7 +237,18 @@ class MoodDirector(private val engine: JarvisEngine) {
 
     companion object {
         private const val TAG = "JarvisMood"
-        const val LISTEN_MS = 4_000L
+        const val CALM_DELAY_MS = 8_000L
+        const val CALM_STEP_MS = 3_000L
+        const val RAPID_MS = 1_700L
+        const val DIZZY_MS = 3_300L
+
+        /** Taps 1–2 love (an emote, no state change), 3–4 bored, 5–6 annoyed, 7+ angry. */
+        fun tapMood(taps: Int): BotState? = when {
+            taps >= 7 -> BotState.ANGRY
+            taps >= 5 -> BotState.ANNOYED
+            taps >= 3 -> BotState.BORED
+            else -> null
+        }
         const val REMIND_MS = 6_000L
         const val MESSAGE_MS = 3_000L
         const val REPLAY_MS = 12_000L

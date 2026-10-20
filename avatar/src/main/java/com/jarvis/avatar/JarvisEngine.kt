@@ -135,6 +135,8 @@ class JarvisEngine {
                 anim(Prop.OX, K(0.04f, 60, Ease.OUT), K(-0.04f, 80), K(0.03f, 80), K(0f, 100, Ease.OUT))
             }
             BotState.BORED -> sigh()
+            BotState.ANNOYED -> { blink(); shake(0.04f) }
+            BotState.ANGRY -> { shake(0.09f); antennaVel += 9f }
             BotState.FULL -> {
                 // Celebration: a spin with sparks, then star eyes and stars.
                 doRoll(0.95f, 1)
@@ -155,6 +157,11 @@ class JarvisEngine {
         antennaVel += 7f
         anim(Prop.SY, K(0.78f, 70, Ease.OUT), K(1.1f, 130, Ease.OUT), K(1f, 170))
         anim(Prop.SX, K(1.16f, 70, Ease.OUT), K(0.95f, 130, Ease.OUT), K(1f, 170))
+    }
+
+    /** A side-to-side shake; [amp] in x R. */
+    fun shake(amp: Float = 0.06f) {
+        anim(Prop.OX, K(amp, 50, Ease.OUT), K(-amp, 70), K(amp * 0.6f, 70), K(-amp * 0.3f, 60), K(0f, 90, Ease.OUT))
     }
 
     /** A slow sigh: stretch up, sink, settle. Used while bored. */
@@ -384,6 +391,7 @@ class JarvisEngine {
             BotState.BORED -> pulse = 0.25f + 0.15f * sin(lt)
             BotState.CHARGING -> pulse = 0.5f + 0.5f * sin(lt * 2.5f)
             BotState.FULL -> pulse = 0.85f
+            BotState.ANGRY -> pulse = if (sin(lt * 9f) > 0) 1f else 0.35f
             else -> Unit
         }
         val open = v[Prop.OPEN.ordinal] * lids

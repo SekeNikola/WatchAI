@@ -49,7 +49,7 @@ drops anti-aliasing on low-bit screens.
 | Emotion | Trigger |
 |---|---|
 | idle | default: floating bob, random blinks (sometimes double), occasional look-around |
-| listening | tap on Jarvis: hop, ear rings, for a fixed 4 s (timed, *not* Gemini's real state) |
+| tap ladder | each tap hops; taps 1–2 **love** (hearts), 3–4 **bored**, 5–6 **annoyed**, 7+ **angry**; three quick taps while angry → **dizzy**, then happy. Calms down a rung every 3 s after 8 s untouched |
 | notify (envelope) | a notification arrives: reminder/alarm/event 6 s, others 3 s, 12 s if it arrived while hidden |
 | envelope badge | any unread notification in the stream (any state without its own badge) |
 | music | a media session is *playing* (watch or mirrored from the phone): notes float out of his head, gentle sway; a small outlined note in ambient |
@@ -68,6 +68,9 @@ are ported and can be triggered from debug.
 
 **Proposed designs** (not in the original, built only from its existing parts; tune in
 `BotState.kt`):
+- **annoyed / angry**: the annoyed eyes (slanted brow); angry adds a frown, flashing red light,
+  "!" badge, flushed cheeks and a jittery float.
+- **full**: on reaching 100% on the charger: spin and sparks, star eyes, then a content green pose.
 - **bored**: narrowed eyes at 75% lids, glancing down-left, flat mouth, slight tilt, slow
   shallow float, droopy antenna, grey-mint bulb.
 - **worried**: wide eyes looking up, wavy mouth, sweat drops, nervous quick float, amber
@@ -147,14 +150,12 @@ The raw adb form is
 `adb shell am broadcast -a com.jarvis.watchface.DEBUG -p com.jarvis.watchface --es cmd state:bored`.
 The debug receiver and screen exist only in debug builds.
 
-## Tap to assistant
+## Taps (no assistant)
 
-Tapping Jarvis plays the listening pose, then after 450 ms (so the perk-up is visible)
-starts the first intent that resolves, in this order: `ACTION_VOICE_COMMAND`,
-`ACTION_ASSIST`, `android.intent.action.VOICE_ASSIST`. The **Jarvis debug** screen lists
-what each one resolves to on your watch, and `.\jarvis.ps1 log` shows which one launched.
-The watch face gets no signal back from Gemini, so the pose is a fixed 4 s. Gemini covers
-the face while it's open.
+Gemini is on the watch's physical button, so tapping Jarvis never launches it. Taps climb
+his mood ladder instead (see the table above and `MoodDirector.onTap`). `AssistantLauncher` is
+kept for the `assist` debug command: on a Pixel Watch 2 (Wear OS 7) `ACTION_ASSIST` opens
+Gemini, and `ACTION_VOICE_COMMAND` resolves to a stub that closes immediately.
 
 ## Notifications (optional)
 

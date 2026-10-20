@@ -82,14 +82,12 @@ class JarvisCanvasRenderer(
         super.onDestroy()
     }
 
-    /** Called from the tap listener. Taps on Jarvis open the assistant. */
+    /** Called from the tap listener. Taps on Jarvis climb his mood ladder (see MoodDirector). */
     fun onTap(x: Int, y: Int) {
         val dx = x - painter.hitX
         val dy = y - painter.hitY
         if (painter.hitR <= 0f || dx * dx + dy * dy > painter.hitR * painter.hitR) return
         director.onTap(SystemClock.uptimeMillis())
-        // A short beat first so the listening perk-up shows before Gemini covers the face.
-        main.postDelayed({ AssistantLauncher.launch(context) }, ASSIST_DELAY_MS)
         invalidate()
     }
 
@@ -152,7 +150,6 @@ class JarvisCanvasRenderer(
     companion object {
         const val DEBUG_ACTION = "com.jarvis.watchface.DEBUG"
         private const val FRAME_MS = 16L
-        private const val ASSIST_DELAY_MS = 450L
         private const val CLOCK_RESTART_MS = 3 * 3600_000L
     }
 }

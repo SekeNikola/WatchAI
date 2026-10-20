@@ -64,6 +64,12 @@ enum class BotState(
         tilt = -0.05f, floatSpeed = 3.4f, floatAmp = 0.018f,
     ),
 
+    /** Poked too often: flat eyes under a slanted brow, flat mouth, amber light. */
+    ANNOYED(0xFFFF9F5A.toInt(), Eye.ANNOYED, Mouth.FLAT, tilt = -0.05f, floatSpeed = 2.2f, floatAmp = 0.02f),
+
+    /** Poked far too often: slanted brows, frown, flashing red light, a jittery float. */
+    ANGRY(0xFFFF6B6B.toInt(), Eye.ANNOYED, Mouth.FROWN, BadgeKind.BANG, blush = 1f, floatSpeed = 4.5f, floatAmp = 0.012f, antennaRest = -0.15f),
+
     /** A notification arrived: the approval look with a letter in the bubble. */
     NOTIFY(0xFFFFB547.toInt(), Eye.WIDE, Mouth.SMALL, BadgeKind.MAIL, bounces = true),
 

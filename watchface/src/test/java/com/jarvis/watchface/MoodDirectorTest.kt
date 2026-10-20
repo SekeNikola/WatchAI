@@ -30,11 +30,35 @@ class MoodDirectorTest {
     }
 
     @Test
-    fun tapListensForAFixedTimeThenIdles() {
-        d.onTap(1_000L)
-        d.update(1_100L, noon)
-        assertEquals(BotState.LISTENING, engine.state)
-        d.update(1_000L + MoodDirector.LISTEN_MS + 1, noon)
+    fun tapLadderThenCalmsDown() {
+        var t = 1_000L
+        fun tap() { d.onTap(t); d.update(t + 10, noon); t += 2_000L }
+        tap(); tap()
+        assertEquals(BotState.IDLE, engine.state) // love is an emote
+        tap()
+        assertEquals(BotState.BORED, engine.state)
+        tap(); tap()
+        assertEquals(BotState.ANNOYED, engine.state)
+        tap(); tap()
+        assertEquals(BotState.ANGRY, engine.state)
+        // Left alone: angry → annoyed → bored → calm.
+        t += MoodDirector.CALM_DELAY_MS
+        d.update(t, noon); assertEquals(BotState.ANNOYED, engine.state)
+        t += MoodDirector.CALM_STEP_MS + 1
+        d.update(t, noon); assertEquals(BotState.BORED, engine.state)
+        t += MoodDirector.CALM_STEP_MS + 1
+        d.update(t, noon); assertEquals(BotState.IDLE, engine.state)
+    }
+
+    @Test
+    fun rapidTapsWhileAngryMakeHimDizzy() {
+        repeat(7) { d.onTap(1_000L + it * 2_000L) }
+        d.update(14_000L, noon)
+        assertEquals(BotState.ANGRY, engine.state)
+        d.onTap(14_100L); d.onTap(14_400L); d.onTap(14_700L)
+        d.update(14_800L, noon)
+        assertEquals(BotState.DIZZY, engine.state)
+        d.update(14_700L + MoodDirector.DIZZY_MS + 1, noon)
         assertEquals(BotState.IDLE, engine.state)
     }
 

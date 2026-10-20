@@ -41,7 +41,7 @@ class DebugActivity : Activity() {
 
         header("Jarvis debug")
         button("Clear (back to live)", "clear")
-        button("Tap / listening", "tap")
+        button("Tap (mood ladder)", "tap")
         button("Bored now", "bored")
         button("Notify: reminder", "notify:remind")
         button("Notify: message", "notify:message")
