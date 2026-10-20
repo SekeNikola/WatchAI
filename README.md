@@ -7,6 +7,8 @@ battery is low and celebrates when it's fully charged.
 
 ![The three characters](docs/img/hero.png)
 
+<p align="center"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-8CF5D2"> <img alt="Wear OS 3+" src="https://img.shields.io/badge/Wear%20OS-3%2B-AEBBFF"></p>
+
 <p align="center"><b>Jarvis</b> the robot · <b>Biscuit</b> the puppy · <b>Boo</b> the ghost</p>
 
 ---
@@ -232,3 +234,8 @@ The draw loop allocates nothing: paints, paths and shaders are reused.
 The Jarvis character and animation engine come from the *Jarvis2.0* desktop assistant, whose
 engine is based on [BotEngine / coucou](THIRD_PARTY_NOTICES-coucou.txt) (MIT, © 2026 Louis Raillé).
 Biscuit and Boo were designed for this project using the same parts.
+
+## License
+
+[MIT](LICENSE) © 2026 Nikola Seke. The animation engine includes code from BotEngine / coucou,
+also MIT, see [THIRD_PARTY_NOTICES-coucou.txt](THIRD_PARTY_NOTICES-coucou.txt).
