@@ -56,6 +56,7 @@ class ScreenshotTest {
                 e.setState(s, force = true); 0.5f
             })
         }
+        shots += Shot("music", frame { e -> e.music = true; 3.0f })
         shots += Shot("ambient_notification", frame(ambient = true, alert = true) { e -> e.update(0.5f); 0.5f })
         shots.forEach { save(it.name, it.bitmap) }
         save("_contact_sheet", sheet(shots))

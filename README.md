@@ -52,6 +52,7 @@ drops anti-aliasing on low-bit screens.
 | listening | tap on Jarvis: hop, ear rings, for a fixed 4 s (timed, *not* Gemini's real state) |
 | notify (envelope) | a notification arrives: reminder/alarm/event 6 s, others 3 s, 12 s if it arrived while hidden |
 | envelope badge | any unread notification in the stream (any state without its own badge) |
+| music | a media session is *playing* (watch or mirrored from the phone): notes float out of his head, gentle sway; a small outlined note in ambient |
 | charging | on the charger. Spins once with sparks on plug-in |
 | worried | battery at or below 15% and not charging |
 | bored | 30–60 s (random) with no tap. Sighs and the occasional yawn |
@@ -136,6 +137,7 @@ From the PC:
 .\jarvis.ps1 cmd hour:2             # fake time of day for moods, hour:real to undo
 .\jarvis.ps1 cmd tap                # listening pose without launching the assistant
 .\jarvis.ps1 cmd unread:2           # fake the unread count (envelope badge); unread:0 hides it
+.\jarvis.ps1 cmd music:on           # music notes on/off without real playback
 .\jarvis.ps1 cmd assist             # launch the assistant without the pose
 .\jarvis.ps1 shot bored             # screenshot from the watch into screens/
 .\jarvis.ps1 log                    # logs (which assistant intent worked, commands)
@@ -165,6 +167,10 @@ the face while it's open.
   amber light, envelope): 6 s for reminders/alarms/events, 3 s otherwise. If it arrived while
   the face was hidden (Wear's notification card covers it and the face pauses), the pose is
   held for 12 s from when the face is visible again.
+
+- **Music.** Being a notification listener also lets Jarvis watch active media sessions
+  (`MediaSessionManager`, callbacks only). While one is playing, notes float out of his head
+  and he sways; pause and they stop.
 
 Tested on a Pixel Watch 2 (Wear OS 7): lighting the screen from code when a notification
 arrives makes Wear open its full-screen card, so Jarvis never wakes the screen. The watch

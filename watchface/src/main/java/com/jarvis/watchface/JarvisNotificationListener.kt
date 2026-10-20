@@ -1,6 +1,10 @@
 package com.jarvis.watchface
 
 import android.app.Notification
+import android.content.ComponentName
+import android.media.session.MediaController
+import android.media.session.MediaSessionManager
+import android.media.session.PlaybackState
 import android.os.SystemClock
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -17,9 +21,45 @@ import android.util.Log
  */
 class JarvisNotificationListener : NotificationListenerService() {
 
-    override fun onListenerConnected() = recount()
+    // Media: being a notification listener is what lets us see active media sessions
+    // (including the one Wear uses to mirror the phone's player). Callbacks only, no polling.
+    private val controllers = mutableListOf<MediaController>()
+    private val playbackCallback = object : MediaController.Callback() {
+        override fun onPlaybackStateChanged(state: PlaybackState?) = updateMusic()
+        override fun onSessionDestroyed() = updateMusic()
+    }
+    private val sessionsListener = MediaSessionManager.OnActiveSessionsChangedListener { watch(it) }
 
-    override fun onListenerDisconnected() = AvatarBus.setUnread(0)
+    override fun onListenerConnected() {
+        recount()
+        try {
+            val msm = getSystemService(MediaSessionManager::class.java)
+            val me = ComponentName(this, JarvisNotificationListener::class.java)
+            msm.addOnActiveSessionsChangedListener(sessionsListener, me)
+            watch(msm.getActiveSessions(me))
+        } catch (e: SecurityException) {
+            Log.w(TAG, "media sessions unavailable: $e")
+        }
+    }
+
+    override fun onListenerDisconnected() {
+        AvatarBus.setUnread(0)
+        runCatching { getSystemService(MediaSessionManager::class.java).removeOnActiveSessionsChangedListener(sessionsListener) }
+        watch(null)
+    }
+
+    private fun watch(sessions: List<MediaController>?) {
+        controllers.forEach { it.unregisterCallback(playbackCallback) }
+        controllers.clear()
+        sessions?.forEach { it.registerCallback(playbackCallback); controllers += it }
+        updateMusic()
+    }
+
+    private fun updateMusic() {
+        val playing = controllers.any { it.playbackState?.state == PlaybackState.STATE_PLAYING }
+        if (playing != AvatarBus.music) Log.i(TAG, "music ${if (playing) "playing" else "stopped"}")
+        AvatarBus.setMusic(playing)
+    }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) = recount()
 

@@ -18,7 +18,7 @@ import kotlin.random.Random
 // Drive it with update(nowSeconds) once per frame, then pose(r, out).
 // Steady-state frames allocate nothing; triggering an action allocates its keyframes.
 
-enum class ParticleType { HEART, STAR, SPARK, SWEAT, Z }
+enum class ParticleType { HEART, STAR, SPARK, SWEAT, Z, NOTE }
 
 class Particle {
     var alive = false
@@ -38,6 +38,9 @@ class JarvisEngine {
 
     /** Shows the envelope badge (unread notifications) whenever the state has no badge of its own. */
     var mail = false
+
+    /** Music is playing: notes float out of his head and he sways to it. */
+    var music = false
 
     /** Lets the eyes drift around on their own. */
     var wander = true
@@ -77,6 +80,8 @@ class JarvisEngine {
     private var badge = BadgeKind.NONE
     private var badgeColor = Palette.MINT
     private var badgeToken = 0
+    private var nextNote = 0f
+    private var groove = 0f
     private var mailS = 0f
     private var mailV = 0f
 
@@ -192,16 +197,18 @@ class JarvisEngine {
             if (made >= count) break
             if (p.alive) continue
             val isZ = type == ParticleType.Z
+            val isNote = type == ParticleType.NOTE
             p.alive = true
             p.type = type
             p.x = (Random.nextFloat() - 0.5f) * 0.9f + (if (isZ) 0.55f else 0f)
             p.y = -0.7f - Random.nextFloat() * 0.2f
-            p.vx = (Random.nextFloat() - 0.5f) * 0.35f + (if (isZ) 0.18f else 0f)
+            p.vx = (Random.nextFloat() - 0.5f) * (if (isNote) 0.7f else 0.35f) + (if (isZ) 0.18f else 0f)
             p.vy = -(0.45f + Random.nextFloat() * 0.35f)
             p.age = -made * 0.14f
             p.life = 1.3f + Random.nextFloat() * 0.5f
             p.rot = Random.nextFloat() * PI.toFloat() * 2f
             p.size = 0.15f + Random.nextFloat() * 0.08f
+            if (isNote) p.rot = Random.nextFloat() * 3f // picks colour + note shape
             made++
         }
     }
@@ -273,6 +280,14 @@ class JarvisEngine {
         tgYaw = ty
         tgPitch = tp
         tgTilt = cfg.tilt
+
+        // Music: a gentle sway (~100 bpm) that fades in and out, notes every ~0.8 s.
+        groove += ((if (music) 1f else 0f) - groove) * (1f - 0.05f.pow(dt))
+        if (groove > 0.01f) tgTilt += sin(t * 5.2f) * 0.07f * groove
+        if (music && n > nextNote && cfg != BotState.SLEEPING) {
+            emit(ParticleType.NOTE, 1)
+            nextNote = n + 0.6f + Random.nextFloat() * 0.5f
+        }
 
         val kGen = 1f - 0.0008f.pow(dt)
         val bounce = if (cfg.bounces) -abs(sin(t * 5.2f)) * 0.07f else 0f

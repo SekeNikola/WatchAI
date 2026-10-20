@@ -85,7 +85,7 @@ class FacePainter(private val context: Context) {
     fun drawAmbient(
         c: Canvas, w: Float, h: Float, z: ZonedDateTime,
         engine: JarvisEngine, battery: Int, charging: Boolean, lowBit: Boolean,
-        alert: Boolean = false,
+        alert: Boolean = false, music: Boolean = false,
     ) {
         prepare(w, z, battery)
         setAntiAlias(!lowBit)
@@ -105,6 +105,7 @@ class FacePainter(private val context: Context) {
             p.antenna = 0f
         }
         avatar.draw(c, p, 0f, RenderStyle.AMBIENT)
+        if (music) avatar.drawAmbientNote(c, w * AVATAR_R)
         c.restore()
         drawInfo(c, w, h, true, battery, charging)
         c.restore()

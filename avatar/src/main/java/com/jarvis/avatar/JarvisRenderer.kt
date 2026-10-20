@@ -422,6 +422,38 @@ class JarvisRenderer {
         c.restore()
     }
 
+    /** A music note (♪, or ♫ when [double]) centred on the origin, about 2·s tall. */
+    private fun noteGlyph(c: Canvas, s: Float, double: Boolean, fillIt: Boolean) {
+        stroke.strokeWidth = s * 0.22f
+        val headPaint = if (fillIt) fill else stroke
+        val hx = if (double) -s * 0.45f else -s * 0.15f
+        oval(hx, s * 0.65f, s * 0.38f, s * 0.28f)
+        c.drawOval(rect, headPaint)
+        c.drawLine(hx + s * 0.34f, s * 0.6f, hx + s * 0.34f, -s, stroke)
+        if (double) {
+            val hx2 = hx + s * 0.95f
+            oval(hx2, s * 0.45f, s * 0.38f, s * 0.28f)
+            c.drawOval(rect, headPaint)
+            c.drawLine(hx2 + s * 0.34f, s * 0.4f, hx2 + s * 0.34f, -s * 1.2f, stroke)
+            stroke.strokeWidth = s * 0.3f
+            c.drawLine(hx + s * 0.34f, -s, hx2 + s * 0.34f, -s * 1.2f, stroke)
+        } else {
+            path.reset()
+            path.moveTo(hx + s * 0.34f, -s)
+            path.quadTo(hx + s * 0.9f, -s * 0.6f, hx + s * 0.75f, -s * 0.05f)
+            c.drawPath(path, stroke)
+        }
+    }
+
+    /** Ambient: a small outlined note beside the head while music plays. */
+    fun drawAmbientNote(c: Canvas, r: Float) {
+        c.save()
+        c.translate(-r * 1.05f, -r * 1.0f)
+        stroke.color = withAlpha(Palette.SPARK, 0.7f)
+        noteGlyph(c, r * 0.16f, double = true, fillIt = false)
+        c.restore()
+    }
+
     /** A letter: envelope body and flap, centred on the origin, sized to a badge of radius br. */
     private fun envelope(c: Canvas, br: Float, body: Int, ink: Int, fillIt: Boolean) {
         val ew = br * 0.62f
@@ -551,6 +583,13 @@ class JarvisRenderer {
                     path.quadTo(sz * 0.8f, sz * 0.2f, 0f, sz * 0.6f)
                     path.quadTo(-sz * 0.8f, sz * 0.2f, 0f, -sz)
                     c.drawPath(path, fill)
+                }
+                ParticleType.NOTE -> {
+                    c.rotate(sin(p.age * 5f + p.rot) * 0.35f * RAD2DEG)
+                    val col = when (p.rot.toInt()) { 0 -> Palette.MINT; 1 -> Palette.SPARK; else -> Palette.ZZZ }
+                    fill.color = withAlpha(col, alpha)
+                    stroke.color = withAlpha(col, alpha)
+                    noteGlyph(c, sz, double = p.rot % 1f > 0.5f, fillIt = true)
                 }
                 ParticleType.Z -> {
                     text.color = withAlpha(Palette.ZZZ, alpha)

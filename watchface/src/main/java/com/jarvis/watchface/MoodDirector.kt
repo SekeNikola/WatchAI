@@ -135,6 +135,7 @@ class MoodDirector(private val engine: JarvisEngine) {
                 "bored" -> { hold = null; lastInteraction = now - boredAfterMs - 1 }
                 "tap" -> onTap(now)
                 "unread" -> AvatarBus.setUnread(parts[1].toInt())
+                "music" -> AvatarBus.setMusic(parts[1] == "on")
                 else -> return false
             }
         } catch (e: Exception) {

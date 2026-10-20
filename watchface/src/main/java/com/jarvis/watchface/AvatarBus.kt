@@ -28,6 +28,17 @@ object AvatarBus {
         onPost?.invoke()
     }
 
+    /** Some media session is playing (set by the listener). */
+    @Volatile
+    var music = false
+        private set
+
+    fun setMusic(playing: Boolean) {
+        if (playing == music) return
+        music = playing
+        onPost?.invoke()
+    }
+
     /** Set by the renderer so a command can wake an ambient frame. */
     @Volatile
     var onPost: (() -> Unit)? = null

@@ -129,13 +129,14 @@ class JarvisCanvasRenderer(
         }
         director.update(nowMs, hour)
         engine.mail = AvatarBus.unread > 0
+        engine.music = AvatarBus.music
 
         val w = bounds.width().toFloat()
         val h = bounds.height().toFloat()
         if (ambient) {
             painter.drawAmbient(
                 canvas, w, h, zonedDateTime, engine, director.batteryLevel, director.charging,
-                watchState.hasLowBitAmbient, director.hasPendingAlert(nowMs) || AvatarBus.unread > 0,
+                watchState.hasLowBitAmbient, director.hasPendingAlert(nowMs) || AvatarBus.unread > 0, AvatarBus.music,
             )
         } else {
             val t = (nowMs - clockBase) / 1000f
