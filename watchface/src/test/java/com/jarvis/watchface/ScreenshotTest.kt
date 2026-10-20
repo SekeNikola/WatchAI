@@ -56,13 +56,14 @@ class ScreenshotTest {
                 e.setState(s, force = true); 0.5f
             })
         }
+        shots += Shot("ambient_notification", frame(ambient = true, alert = true) { e -> e.update(0.5f); 0.5f })
         shots.forEach { save(it.name, it.bitmap) }
         save("_contact_sheet", sheet(shots))
     }
 
     /** Runs the engine at 60 fps for the time the setup returns, then draws one frame. */
     private fun frame(
-        battery: Int = 82, charging: Boolean = false, ambient: Boolean = false,
+        battery: Int = 82, charging: Boolean = false, ambient: Boolean = false, alert: Boolean = false,
         setup: (JarvisEngine) -> Float,
     ): Bitmap {
         val engine = JarvisEngine()
@@ -75,7 +76,7 @@ class ScreenshotTest {
         val c = Canvas(bmp)
         val painter = FacePainter(RuntimeEnvironment.getApplication())
         val w = size.toFloat()
-        if (ambient) painter.drawAmbient(c, w, w, time, engine, battery, charging, false)
+        if (ambient) painter.drawAmbient(c, w, w, time, engine, battery, charging, false, alert)
         else painter.drawInteractive(c, w, w, time, engine, t, battery, charging)
         roundMask(c)
         return bmp

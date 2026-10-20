@@ -69,7 +69,10 @@ class MoodDirector(private val engine: JarvisEngine) {
         val pending = pendingNotify
         if (pending != null && now - pendingNotifyAt < PENDING_NOTIFY_MS) {
             pendingNotify = null
-            notify(pending, now)
+            // Wear OS shows its notification card on this same wrist raise, so hold
+            // the alert long enough to still be playing when the card is swiped away.
+            engine.triggerEmote(Emote.SURPRISED, 1.2f)
+            remindUntil = now + REPLAY_MS
             touch(now)
             return
         }
@@ -83,7 +86,12 @@ class MoodDirector(private val engine: JarvisEngine) {
         greet(now, hour, dayOfYear)
     }
 
+    /** A notification arrived while in ambient and hasn't been shown yet. */
+    fun hasPendingAlert(now: Long): Boolean =
+        pendingNotify != null && now - pendingNotifyAt < PENDING_NOTIFY_MS
+
     fun onNotification(kind: String, now: Long, interactive: Boolean) {
+        Log.i(TAG, "notification '$kind' while ${if (interactive) "interactive" else "ambient"}")
         if (interactive) {
             notify(kind, now)
             touch(now)
@@ -144,7 +152,7 @@ class MoodDirector(private val engine: JarvisEngine) {
     private fun choose(now: Long, hour: Float): BotState {
         hold?.let { return it }
         if (now < listenUntil) return BotState.LISTENING
-        if (now < remindUntil) return BotState.APPROVAL
+        if (now < remindUntil) return BotState.NOTIFY
         if (charging) return BotState.CHARGING
         if (batteryLevel <= LOW_BATTERY) return BotState.WORRIED
         if (now - lastInteraction > boredAfterMs) {
@@ -157,8 +165,7 @@ class MoodDirector(private val engine: JarvisEngine) {
         engine.triggerEmote(Emote.SURPRISED, 1.2f)
         remindUntil = now + when (kind) {
             "remind" -> REMIND_MS
-            "message" -> MESSAGE_MS
-            else -> 0L
+            else -> MESSAGE_MS
         }
     }
 
@@ -186,6 +193,7 @@ class MoodDirector(private val engine: JarvisEngine) {
         const val LISTEN_MS = 4_000L
         const val REMIND_MS = 6_000L
         const val MESSAGE_MS = 3_000L
+        const val REPLAY_MS = 12_000L
         const val NOTICE_DELAY_MS = 1_400L
         const val PENDING_NOTIFY_MS = 10 * 60_000L
         const val YAWN_GAP_MS = 20 * 60_000L

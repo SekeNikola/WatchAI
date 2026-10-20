@@ -85,6 +85,7 @@ class FacePainter(private val context: Context) {
     fun drawAmbient(
         c: Canvas, w: Float, h: Float, z: ZonedDateTime,
         engine: JarvisEngine, battery: Int, charging: Boolean, lowBit: Boolean,
+        alert: Boolean = false,
     ) {
         prepare(w, z, battery)
         setAntiAlias(!lowBit)
@@ -96,7 +97,14 @@ class FacePainter(private val context: Context) {
         drawTime(c, w, h, true)
         c.save()
         c.translate(w / 2f, h * AVATAR_Y)
-        avatar.draw(c, ambientPose(engine, w * AVATAR_R), 0f, RenderStyle.AMBIENT)
+        val p = ambientPose(engine, w * AVATAR_R)
+        if (alert) {
+            // A notification is waiting: eyes wide, a letter in the bubble, until the next wrist raise.
+            p.eyes = Eye.WIDE; p.mouth = Mouth.O; p.mouthOpen = 0.5f; p.open = 1f
+            p.badge = BadgeKind.MAIL; p.badgeColor = 0xFFFFB547.toInt(); p.badgeScale = 1f
+            p.antenna = 0f
+        }
+        avatar.draw(c, p, 0f, RenderStyle.AMBIENT)
         c.restore()
         drawInfo(c, w, h, true, battery, charging)
         c.restore()

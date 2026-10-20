@@ -10,7 +10,7 @@ enum class Eye {
 
 enum class Mouth { NONE, SMILE, SMALL, GRIN, FLAT, FROWN, WAVY, TALK, O, CHEW, GULP }
 
-enum class BadgeKind { NONE, DOTS, BANG, QUESTION, DOT }
+enum class BadgeKind { NONE, DOTS, BANG, QUESTION, DOT, MAIL }
 
 /** How much of the character to draw. */
 enum class RenderStyle {

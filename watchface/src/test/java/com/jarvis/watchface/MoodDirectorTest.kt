@@ -55,8 +55,8 @@ class MoodDirectorTest {
         assertEquals(BotState.IDLE, engine.state)
         d.onWake(20_000L, noon, 1)
         d.update(20_100L, noon)
-        assertEquals(BotState.APPROVAL, engine.state)
-        d.update(20_000L + MoodDirector.REMIND_MS + 1, noon)
+        assertEquals(BotState.NOTIFY, engine.state)
+        d.update(20_000L + MoodDirector.REPLAY_MS + 1, noon)
         assertEquals(BotState.IDLE, engine.state)
     }
 

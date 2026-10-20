@@ -396,7 +396,8 @@ class JarvisRenderer {
             return
         }
 
-        fill.color = if (p.badge == BadgeKind.BANG) p.badgeColor else Palette.BADGE_LIGHT
+        val solid = p.badge == BadgeKind.BANG || p.badge == BadgeKind.MAIL
+        fill.color = if (solid) p.badgeColor else Palette.BADGE_LIGHT
         c.drawCircle(0f, 0f, br, fill)
         path.reset()
         path.moveTo(-br * 0.75f, br * 0.45f)
@@ -405,7 +406,9 @@ class JarvisRenderer {
         path.close()
         c.drawPath(path, fill)
 
-        if (p.badge == BadgeKind.DOTS) {
+        if (p.badge == BadgeKind.MAIL) {
+            envelope(c, br, Palette.BADGE_LIGHT, Palette.BADGE_INK, fillIt = true)
+        } else if (p.badge == BadgeKind.DOTS) {
             fill.color = shade(p.badgeColor, 0.8f)
             for (i in 0 until 3) {
                 c.drawCircle((i - 1) * br * 0.42f, sin(t * 7f - i * 0.8f) * br * 0.18f, br * 0.13f, fill)
@@ -417,6 +420,27 @@ class JarvisRenderer {
             c.drawText(if (p.badge == BadgeKind.BANG) "!" else "?", 0f, baseline, text)
         }
         c.restore()
+    }
+
+    /** A letter: envelope body and flap, centred on the origin, sized to a badge of radius br. */
+    private fun envelope(c: Canvas, br: Float, body: Int, ink: Int, fillIt: Boolean) {
+        val ew = br * 0.62f
+        val eh = br * 0.42f
+        rect.set(-ew, -eh, ew, eh)
+        stroke.strokeWidth = br * 0.12f
+        if (fillIt) {
+            fill.color = body
+            c.drawRoundRect(rect, br * 0.1f, br * 0.1f, fill)
+            stroke.color = ink
+        } else {
+            stroke.color = body
+            c.drawRoundRect(rect, br * 0.1f, br * 0.1f, stroke)
+        }
+        path.reset()
+        path.moveTo(-ew + br * 0.06f, -eh + br * 0.06f)
+        path.lineTo(0f, eh * 0.25f)
+        path.lineTo(ew - br * 0.06f, -eh + br * 0.06f)
+        c.drawPath(path, stroke)
     }
 
     // ── Ambient: outline only, dim, nothing large lit (burn-in safe) ────────
@@ -466,6 +490,24 @@ class JarvisRenderer {
         }
         fill.color = face
         drawMouth(c, p, t, r, ox * 0.6f, r * (MOUTH_Y + 0.04f) + oy * 0.5f, face)
+        if (p.badge != BadgeKind.NONE && p.badgeScale > 0.01f) {
+            // Outline badge: small, dim, burn-in safe.
+            val br = r * 0.27f
+            stroke.color = withAlpha(p.badgeColor, 0.8f)
+            stroke.strokeWidth = r * 0.035f
+            c.drawCircle(r * 0.98f, -r * 0.98f, br, stroke)
+            if (p.badge == BadgeKind.MAIL) {
+                c.save()
+                c.translate(r * 0.98f, -r * 0.98f)
+                envelope(c, br, withAlpha(p.badgeColor, 0.9f), 0, fillIt = false)
+                c.restore()
+            } else if (p.badge == BadgeKind.BANG || p.badge == BadgeKind.QUESTION) {
+                text.color = withAlpha(p.badgeColor, 0.9f)
+                text.textSize = br * 1.35f
+                c.drawText(if (p.badge == BadgeKind.BANG) "!" else "?", r * 0.98f,
+                    -r * 0.98f + br * 0.1f - (text.ascent() + text.descent()) / 2f, text)
+            }
+        }
         c.restore()
     }
 

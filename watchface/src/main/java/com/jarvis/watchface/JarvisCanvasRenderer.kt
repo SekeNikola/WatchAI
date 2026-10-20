@@ -130,7 +130,7 @@ class JarvisCanvasRenderer(
         if (ambient) {
             painter.drawAmbient(
                 canvas, w, h, zonedDateTime, engine, director.batteryLevel, director.charging,
-                watchState.hasLowBitAmbient,
+                watchState.hasLowBitAmbient, director.hasPendingAlert(nowMs),
             )
         } else {
             val t = (nowMs - clockBase) / 1000f

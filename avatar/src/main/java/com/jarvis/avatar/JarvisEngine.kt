@@ -116,7 +116,7 @@ class JarvisEngine {
                 later(0.5f) { emit(ParticleType.SPARK, 5) }
             }
             BotState.ERROR -> anim(Prop.OX, K(0.08f, 50, Ease.OUT), K(-0.08f, 70), K(0.05f, 70), K(0f, 90, Ease.OUT))
-            BotState.APPROVAL -> anim(Prop.OY, K(-0.2f, 150, Ease.OUT), K(0f, 300, Ease.BACK))
+            BotState.APPROVAL, BotState.NOTIFY -> anim(Prop.OY, K(-0.2f, 150, Ease.OUT), K(0f, 300, Ease.BACK))
             BotState.DIZZY -> doRoll(1.3f, 2)
             BotState.QUESTION -> blink()
             BotState.RATELIMIT -> emit(ParticleType.SWEAT, 1)
@@ -341,7 +341,7 @@ class JarvisEngine {
         val st = state
         var pulse = 0.5f + 0.5f * sin(lt * 2f)
         when (st) {
-            BotState.APPROVAL -> pulse = if (sin(lt * 6f) > 0) 1f else 0.2f
+            BotState.APPROVAL, BotState.NOTIFY -> pulse = if (sin(lt * 6f) > 0) 1f else 0.2f
             BotState.ERROR -> pulse = if (sin(lt * 10f) > 0) 1f else 0.3f
             BotState.LISTENING -> pulse = 0.5f + 0.5f * sin(lt * 8f)
             BotState.SPEAKING -> pulse = mouthOpen
