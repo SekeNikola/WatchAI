@@ -27,9 +27,14 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
+    testOptions { unitTests.isIncludeAndroidResources = true }
 }
 
 dependencies {
     implementation(project(":avatar"))
     implementation("androidx.wear.watchface:watchface:1.2.1")
+
+    // Test-only: renders the real android.graphics Canvas on the JVM for screenshots.
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.14.1")
 }
