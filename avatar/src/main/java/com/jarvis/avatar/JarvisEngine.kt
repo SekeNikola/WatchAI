@@ -135,6 +135,12 @@ class JarvisEngine {
                 anim(Prop.OX, K(0.04f, 60, Ease.OUT), K(-0.04f, 80), K(0.03f, 80), K(0f, 100, Ease.OUT))
             }
             BotState.BORED -> sigh()
+            BotState.FULL -> {
+                // Celebration: a spin with sparks, then star eyes and stars.
+                doRoll(0.95f, 1)
+                later(0.5f) { emit(ParticleType.SPARK, 6) }
+                later(1.0f) { triggerEmote(Emote.PROUD, 2.2f) }
+            }
             else -> if (prev != BotState.IDLE || next != BotState.IDLE) blink()
         }
     }
@@ -333,6 +339,7 @@ class JarvisEngine {
             lastAmbient = n
             if (cfg.zz) emit(ParticleType.Z, 1)
             if (cfg.sweat && Random.nextFloat() < 0.5f) emit(ParticleType.SWEAT, 1)
+            if (cfg == BotState.FULL && Random.nextFloat() < 0.25f) emit(ParticleType.SPARK, 1)
             if (cfg == BotState.BORED && Random.nextFloat() < 0.12f) {
                 if (Random.nextFloat() < 0.3f) triggerEmote(Emote.YAWN, 2.2f) else sigh()
             }
@@ -376,6 +383,7 @@ class JarvisEngine {
             BotState.WORRIED -> pulse = if (sin(lt * 3f) > 0) 0.9f else 0.25f
             BotState.BORED -> pulse = 0.25f + 0.15f * sin(lt)
             BotState.CHARGING -> pulse = 0.5f + 0.5f * sin(lt * 2.5f)
+            BotState.FULL -> pulse = 0.85f
             else -> Unit
         }
         val open = v[Prop.OPEN.ordinal] * lids

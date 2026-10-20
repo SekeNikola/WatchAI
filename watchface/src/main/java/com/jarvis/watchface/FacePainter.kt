@@ -178,7 +178,7 @@ class FacePainter(private val context: Context) {
         pose.mouthOpen = 0f
         when (engine.state) {
             BotState.SLEEPING -> { pose.eyes = Eye.CLOSED; pose.mouth = Mouth.NONE }
-            BotState.CHARGING -> { pose.eyes = Eye.HAPPY; pose.mouth = Mouth.SMILE }
+            BotState.CHARGING, BotState.FULL -> { pose.eyes = Eye.HAPPY; pose.mouth = Mouth.SMILE }
             BotState.WORRIED -> { pose.eyes = Eye.WIDE; pose.mouth = Mouth.SMALL; pose.open = 0.8f }
             BotState.BORED -> { pose.eyes = Eye.FOCUS; pose.mouth = Mouth.FLAT; pose.open = 0.7f }
             else -> { pose.eyes = Eye.OPEN; pose.mouth = Mouth.SMILE; pose.open = 0.75f }

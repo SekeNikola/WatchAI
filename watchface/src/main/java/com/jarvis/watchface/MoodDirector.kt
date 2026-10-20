@@ -14,7 +14,7 @@ import kotlin.random.Random
  *
  * Priority, highest first:
  *   debug hold → listening (after a tap) → remind (after a notification)
- *   → charging → low battery (worried) → bored / asleep at night → idle
+ *   → full / charging → low battery (worried) → bored / asleep at night → idle
  *
  * All times are uptime milliseconds.
  */
@@ -161,7 +161,7 @@ class MoodDirector(private val engine: JarvisEngine) {
         hold?.let { return it }
         if (now < listenUntil) return BotState.LISTENING
         if (now < remindUntil) return BotState.NOTIFY
-        if (charging) return BotState.CHARGING
+        if (charging) return if (batteryLevel >= 100) BotState.FULL else BotState.CHARGING
         if (batteryLevel <= LOW_BATTERY) return BotState.WORRIED
         if (now - lastInteraction > boredAfterMs) {
             return if (drowsiness(hour) >= 0.8f) BotState.SLEEPING else BotState.BORED

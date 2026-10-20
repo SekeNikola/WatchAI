@@ -39,8 +39,9 @@ class ScreenshotTest {
     fun renderAll() {
         val shots = mutableListOf<Shot>()
         for (s in BotState.entries) {
-            val battery = when (s) { BotState.WORRIED -> 12; BotState.CHARGING -> 64; else -> 82 }
-            shots += Shot(s.name.lowercase(), frame(battery = battery, charging = s == BotState.CHARGING) { e ->
+            val battery = when (s) { BotState.WORRIED -> 12; BotState.CHARGING -> 64; BotState.FULL -> 100; else -> 82 }
+            val onCharger = s == BotState.CHARGING || s == BotState.FULL
+            shots += Shot(s.name.lowercase(), frame(battery = battery, charging = onCharger) { e ->
                 e.setState(s, force = true); 1.6f
             })
         }

@@ -55,7 +55,7 @@ class JarvisNotificationListener : NotificationListenerService() {
         updateMusic()
     }
 
-    /** A media notification is showing (Wear removes it when playback pauses). */
+    /** Wear's ongoing media chip is showing (it is removed when playback pauses). */
     private var mediaNotification = false
 
     private fun updateMusic() {
@@ -100,7 +100,9 @@ class JarvisNotificationListener : NotificationListenerService() {
     private fun recount() {
         val active = try { activeNotifications } catch (e: Exception) { null } ?: return
         AvatarBus.setUnread(active.count(::counts))
-        mediaNotification = active.any(::isMedia)
+        // Only the ongoing media chip: Wear removes it on pause. The player's foreground-service
+        // notification (NO_CLEAR, not ongoing) lingers after music stops, so it doesn't count.
+        mediaNotification = active.any { it.isOngoing && isMedia(it) }
         updateMusic()
     }
 

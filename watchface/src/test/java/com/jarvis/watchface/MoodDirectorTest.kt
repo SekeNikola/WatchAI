@@ -46,6 +46,9 @@ class MoodDirectorTest {
         d.setRealBattery(10, true)
         d.update(2_000L, noon)
         assertEquals(BotState.CHARGING, engine.state)
+        d.setRealBattery(100, true)
+        d.update(3_000L, noon)
+        assertEquals(BotState.FULL, engine.state)
     }
 
     @Test

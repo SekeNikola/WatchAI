@@ -67,6 +67,9 @@ enum class BotState(
     /** A notification arrived: the approval look with a letter in the bubble. */
     NOTIFY(0xFFFFB547.toInt(), Eye.WIDE, Mouth.SMALL, BadgeKind.MAIL, bounces = true),
 
+    /** Fully charged: proud and content, steady green light, an occasional sparkle. */
+    FULL(0xFF6EE7A0.toInt(), Eye.HAPPY, Mouth.GRIN, breathes = true, blush = 0.4f, floatSpeed = 1.2f, floatAmp = 0.03f),
+
     /** On the charger: happy eyes, grin, green light, breathing, blushing. */
     CHARGING(0xFF6EE7A0.toInt(), Eye.HAPPY, Mouth.GRIN, breathes = true, blush = 0.55f, floatSpeed = 1.4f),
 }
