@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Jarvis</string>
+    <string name="app_name">Cute Companion</string>
     <string name="character_setting">Character</string>
     <string name="character_setting_desc">Who lives on your watch</string>
     <string name="char_jarvis">Jarvis</string>

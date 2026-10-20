@@ -1,4 +1,4 @@
-# Jarvis watch face (Wear OS)
+# Cute Companion — Jarvis, Biscuit & Boo (Wear OS watch face)
 
 The Jarvis avatar from Jarvis2.0 living on the watch as an animated watch face.
 Avatar only: Gemini (already on the watch) stays the assistant. Personal use, sideloaded.

@@ -254,8 +254,9 @@ class JarvisRenderer {
         // Floppy ears, wiggling with the antenna spring.
         for (s in SIDES) {
             c.save()
-            c.translate(s * r * 0.6f, -r * 0.62f)
-            c.rotate((s * 0.12f + clamp(p.antenna * 0.6f, -0.22f, 0.22f)) * RAD2DEG)
+            // Hung from the sides of the head, tipped a little outward.
+            c.translate(s * r * 0.84f, -r * 0.42f)
+            c.rotate((s * 0.22f + clamp(p.antenna * 0.6f, -0.22f, 0.22f)) * RAD2DEG)
             path.reset()
             path.moveTo(0f, 0f)
             path.cubicTo(s * r * 0.48f, r * 0.02f, s * r * 0.58f, r * 0.78f, s * r * 0.26f, r * 0.98f)
