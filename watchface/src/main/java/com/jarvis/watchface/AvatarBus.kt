@@ -17,6 +17,17 @@ import java.util.concurrent.ConcurrentLinkedQueue
 object AvatarBus {
     private val queue = ConcurrentLinkedQueue<String>()
 
+    /** Notifications waiting in the stream (set by the listener). Drives the envelope badge. */
+    @Volatile
+    var unread = 0
+        private set
+
+    fun setUnread(count: Int) {
+        if (count == unread) return
+        unread = count
+        onPost?.invoke()
+    }
+
     /** Set by the renderer so a command can wake an ambient frame. */
     @Volatile
     var onPost: (() -> Unit)? = null

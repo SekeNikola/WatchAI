@@ -36,6 +36,9 @@ class JarvisEngine {
     /** 0 = wide awake … 1 = late night: heavier lids and a dimmer face while idle. */
     var drowsy = 0f
 
+    /** Shows the envelope badge (unread notifications) whenever the state has no badge of its own. */
+    var mail = false
+
     /** Lets the eyes drift around on their own. */
     var wander = true
 
@@ -74,6 +77,8 @@ class JarvisEngine {
     private var badge = BadgeKind.NONE
     private var badgeColor = Palette.MINT
     private var badgeToken = 0
+    private var mailS = 0f
+    private var mailV = 0f
 
     // Shape swaps: what is drawn vs. what is wanted.
     private var shownEye = Eye.OPEN
@@ -212,6 +217,7 @@ class JarvisEngine {
         badge = state.badge
         badgeColor = state.color
         v[Prop.BADGE_S.ordinal] = if (badge == BadgeKind.NONE) 0f else 1f
+        mailS = if (mail) 1f else 0f; mailV = 0f
         eyeOverride = null; emote = null
     }
 
@@ -331,6 +337,11 @@ class JarvisEngine {
 
         if (emote != null && n > emoteUntil) emote = null
 
+        // Envelope badge: a springy pop in and out.
+        val mailT = if (mail) 1f else 0f
+        mailV += (220f * (mailT - mailS) - 18f * mailV) * dt
+        mailS = max(0f, mailS + mailV * dt)
+
         resolveFace(t)
         stepSwaps(dt)
     }
@@ -374,6 +385,11 @@ class JarvisEngine {
         out.badge = badge
         out.badgeColor = badgeColor
         out.badgeScale = v[Prop.BADGE_S.ordinal]
+        if (badge == BadgeKind.NONE && mailS > 0.01f) {
+            out.badge = BadgeKind.MAIL
+            out.badgeColor = MAIL_COLOR
+            out.badgeScale = mailS
+        }
         out.listen = st == BotState.LISTENING
         out.scan = st.scans
         out.dizzy = st == BotState.DIZZY
@@ -497,6 +513,8 @@ class JarvisEngine {
     private class Timer(val at: Float, val fn: () -> Unit)
 
     private companion object {
+        const val MAIL_COLOR = 0xFFFFB547.toInt()
+
         fun mouthForEye(e: Eye): Mouth? = when (e) {
             Eye.HAPPY, Eye.STAR -> Mouth.GRIN
             Eye.HEART, Eye.WINK -> Mouth.SMILE

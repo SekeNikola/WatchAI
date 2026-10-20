@@ -50,7 +50,8 @@ drops anti-aliasing on low-bit screens.
 |---|---|
 | idle | default: floating bob, random blinks (sometimes double), occasional look-around |
 | listening | tap on Jarvis: hop, ear rings, for a fixed 4 s (timed, *not* Gemini's real state) |
-| approval (remind) | a reminder/alarm/event notification (6 s), or a message/call (3 s) |
+| notify (envelope) | a notification arrives: reminder/alarm/event 6 s, others 3 s, 12 s if it arrived while hidden |
+| envelope badge | any unread notification in the stream (any state without its own badge) |
 | charging | on the charger. Spins once with sparks on plug-in |
 | worried | battery at or below 15% and not charging |
 | bored | 30–60 s (random) with no tap. Sighs and the occasional yawn |
@@ -134,6 +135,7 @@ From the PC:
 .\jarvis.ps1 cmd battery:10:false   # fake battery (level:charging), battery:real to undo
 .\jarvis.ps1 cmd hour:2             # fake time of day for moods, hour:real to undo
 .\jarvis.ps1 cmd tap                # listening pose without launching the assistant
+.\jarvis.ps1 cmd unread:2           # fake the unread count (envelope badge); unread:0 hides it
 .\jarvis.ps1 cmd assist             # launch the assistant without the pose
 .\jarvis.ps1 shot bored             # screenshot from the watch into screens/
 .\jarvis.ps1 log                    # logs (which assistant intent worked, commands)
@@ -154,9 +156,19 @@ the face while it's open.
 
 ## Notifications (optional)
 
-`JarvisNotificationListener` makes Jarvis perk up (surprised) and show the remind pose
-when a reminder, alarm, calendar event, message or call notification arrives. If the screen
-is in ambient, he shows it on the next wrist raise (within 10 min).
+`JarvisNotificationListener` does two things:
+
+- **Envelope badge while anything is unread.** As long as there is a notification in the
+  swipe-up list (ongoing ones like media and timers don't count), Jarvis carries an envelope
+  in his speech bubble, both interactive and in ambient. Clear the notifications and it pops away.
+- **A reaction on arrival.** A surprised hop, then the bouncing NOTIFY pose (wide eyes,
+  amber light, envelope): 6 s for reminders/alarms/events, 3 s otherwise. If it arrived while
+  the face was hidden (Wear's notification card covers it and the face pauses), the pose is
+  held for 12 s from when the face is visible again.
+
+Tested on a Pixel Watch 2 (Wear OS 7): lighting the screen from code when a notification
+arrives makes Wear open its full-screen card, so Jarvis never wakes the screen. The watch
+just buzzes, and Jarvis shows the envelope at the next glance.
 
 - **Permission:** notification access (`BIND_NOTIFICATION_LISTENER_SERVICE`). There's no
   runtime prompt. It does nothing until you grant it, and Wear OS has no settings screen for

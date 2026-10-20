@@ -90,10 +90,16 @@ class MoodDirector(private val engine: JarvisEngine) {
     fun hasPendingAlert(now: Long): Boolean =
         pendingNotify != null && now - pendingNotifyAt < PENDING_NOTIFY_MS
 
-    fun onNotification(kind: String, now: Long, interactive: Boolean) {
+    /**
+     * [postedAt] is when the notification arrived. If it waited in the queue (the
+     * face doesn't draw while Wear's notification card covers it), the reaction is
+     * held longer so it is still playing when the card is swiped away.
+     */
+    fun onNotification(kind: String, now: Long, interactive: Boolean, postedAt: Long = now) {
         Log.i(TAG, "notification '$kind' while ${if (interactive) "interactive" else "ambient"}")
         if (interactive) {
             notify(kind, now)
+            if (now - postedAt > HIDDEN_MS) remindUntil = maxOf(remindUntil, now + REPLAY_MS)
             touch(now)
         } else {
             pendingNotify = kind
@@ -117,7 +123,7 @@ class MoodDirector(private val engine: JarvisEngine) {
                     hourOverride = Float.NaN
                     touch(now)
                 }
-                "notify" -> onNotification(parts.getOrElse(1) { "remind" }, now, interactive)
+                "notify" -> onNotification(parts.getOrElse(1) { "remind" }, now, interactive, parts.getOrNull(2)?.toLongOrNull() ?: now)
                 "battery" -> if (parts[1] == "real") {
                     batteryOverride = false; batteryLevel = realBattery; charging = realCharging
                 } else {
@@ -128,6 +134,7 @@ class MoodDirector(private val engine: JarvisEngine) {
                 "hour" -> hourOverride = if (parts[1] == "real") Float.NaN else parts[1].toFloat()
                 "bored" -> { hold = null; lastInteraction = now - boredAfterMs - 1 }
                 "tap" -> onTap(now)
+                "unread" -> AvatarBus.setUnread(parts[1].toInt())
                 else -> return false
             }
         } catch (e: Exception) {
@@ -194,6 +201,7 @@ class MoodDirector(private val engine: JarvisEngine) {
         const val REMIND_MS = 6_000L
         const val MESSAGE_MS = 3_000L
         const val REPLAY_MS = 12_000L
+        const val HIDDEN_MS = 1_000L
         const val NOTICE_DELAY_MS = 1_400L
         const val PENDING_NOTIFY_MS = 10 * 60_000L
         const val YAWN_GAP_MS = 20 * 60_000L
