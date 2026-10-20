@@ -6,3 +6,6 @@ local.properties
 captures/
 .kotlin/
 screens/
+keystore.properties
+*.jks
+*.keystore

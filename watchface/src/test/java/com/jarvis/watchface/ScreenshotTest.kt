@@ -123,6 +123,62 @@ class ScreenshotTest {
         }
     }
 
+    /**
+     * Frames for the README GIF: build/gif/frame_NNN.png at 15 fps (assembled by a script).
+     * A little story across the three characters, driven exactly like the watch drives it.
+     */
+    @Test
+    fun renderGifFrames() {
+        val dir = File("build/gif").apply { deleteRecursively(); mkdirs() }
+        val fps = 15
+        val size = 320
+        var frameNo = 0
+        val painter = FacePainter(RuntimeEnvironment.getApplication())
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+
+        fun scene(
+            ch: com.jarvis.avatar.Character, seconds: Float, battery: Int = 82, charging: Boolean = false,
+            script: (JarvisEngine, Float) -> Unit,
+        ) {
+            val engine = JarvisEngine()
+            engine.wander = true
+            painter.character = ch
+            var t = 0f
+            engine.update(t)
+            script(engine, -1f) // setup
+            val frames = (seconds * fps).toInt()
+            repeat(frames) {
+                // 4 sub-steps per frame so springs see small, stable steps.
+                repeat(4) { t += 1f / (fps * 4); engine.update(t); script(engine, t) }
+                painter.drawInteractive(c, size.toFloat(), size.toFloat(), time, engine, t, battery, charging)
+                File(dir, "frame_%03d.png".format(frameNo++)).outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            }
+        }
+        fun once(t: Float, at: Float) = t >= at && t < at + 1f / 60f
+
+        // Jarvis: idle, then two taps of love.
+        scene(com.jarvis.avatar.Character.JARVIS, 3.2f) { e, t ->
+            if (once(t, 1.0f)) { e.squash(); e.triggerEmote(Emote.LOVE, 1.8f) }
+        }
+        // Biscuit: poked until angry, then dizzy.
+        scene(com.jarvis.avatar.Character.DOG, 3.4f) { e, t ->
+            if (once(t, 0.3f)) { e.squash(); e.setState(BotState.ANNOYED) }
+            if (once(t, 1.1f)) { e.squash(); e.shake(0.09f); e.setState(BotState.ANGRY) }
+            if (once(t, 2.2f)) { e.squash(); e.setState(BotState.DIZZY) }
+        }
+        // Boo: a notification, then music.
+        scene(com.jarvis.avatar.Character.GHOST, 3.6f) { e, t ->
+            if (once(t, 0.3f)) { e.triggerEmote(Emote.SURPRISED, 1.0f); e.setState(BotState.NOTIFY) }
+            if (once(t, 1.8f)) { e.setState(BotState.IDLE); e.music = true }
+        }
+        // Jarvis: charging bolts, then fully charged.
+        scene(com.jarvis.avatar.Character.JARVIS, 3.4f, battery = 100, charging = true) { e, t ->
+            if (t < 0f) e.setState(BotState.CHARGING, force = true)
+            if (once(t, 1.3f)) e.setState(BotState.FULL)
+        }
+    }
+
     private fun strip(items: List<Pair<String, Bitmap>>, cell: Int) = grid(items, items.size, cell)
 
     /** Faces in a grid on a dark background, each with a caption. */

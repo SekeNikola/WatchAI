@@ -5,6 +5,10 @@ ghost. It floats, blinks, looks around, gets bored when you ignore it, falls asl
 bops along to your music, shows a letter when you have unread notifications, sweats when the
 battery is low and celebrates when it's fully charged.
 
+<p align="center"><img src="docs/img/demo.gif" alt="Cute Companion in action: taps, moods, notifications, music and charging" width="328"></p>
+
+<p align="center"><a href="https://github.com/SekeNikola/WatchAI/releases/latest"><b>⬇️ Download the latest APK</b></a></p>
+
 ![The three characters](docs/img/hero.png)
 
 <p align="center"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-8CF5D2"> <img alt="Wear OS 3+" src="https://img.shields.io/badge/Wear%20OS-3%2B-AEBBFF"></p>
@@ -68,18 +72,29 @@ A periwinkle dome with a dark visor and a mint LED face. His antenna bulb is his
 The character keeps its mood in standby too: asleep at night, worried on low battery, a small
 note while music plays, a letter while something is unread.
 
+## Download
+
+1. Open the **[latest release](https://github.com/SekeNikola/WatchAI/releases/latest)** and download **`CuteCompanion-<version>.apk`**
+   under *Assets*.
+2. Install it on your watch with the steps below. A watch can't download and install APKs by
+   itself, so you install it from a computer over Wi-Fi with `adb`.
+
+> Already installed a build you made yourself? Uninstall it first
+> (`adb uninstall com.jarvis.watchface`), because the release APK is signed with a different key.
+
 ## Install
 
 This is a sideloaded watch face (an APK you install yourself), not a Play Store listing.
 See [Why not the Play Store?](#why-not-the-play-store).
 
 **You need:** a Wear OS 3+ watch (round screens look best) and a computer with
-[Android platform-tools](https://developer.android.com/tools/releases/platform-tools) (`adb`).
-To build it yourself you also need JDK 17 and the Android SDK (Android Studio includes both).
+[Android platform-tools](https://developer.android.com/tools/releases/platform-tools) (`adb`):
+download the zip for Windows, macOS or Linux and unzip it. `adb` is inside.
 
 ### 1. Get the APK
 
-Build it:
+Download it from [Releases](https://github.com/SekeNikola/WatchAI/releases/latest) (above), or build it yourself with JDK 17
+and the Android SDK (Android Studio includes both):
 
 ```bash
 ./gradlew :watchface:assembleRelease      # watchface/build/outputs/apk/release/watchface-release.apk
@@ -100,7 +115,7 @@ adb pair <watch-ip>:<pairing-port> <code>
 
 # every time: the IP:port shown on the Wireless debugging screen
 adb connect <watch-ip>:<port>
-adb install -r watchface-release.apk
+adb install -r CuteCompanion-1.0.0.apk
 ```
 
 ### 4. Set the face and pick a character
@@ -164,12 +179,24 @@ distributed as a sideloaded APK.
 
 ```bash
 ./gradlew :watchface:assembleDebug        # debug build (adds an on-watch debug screen)
+./gradlew :watchface:assembleRelease      # release build (see "Release signing" below)
 ./gradlew :watchface:testDebugUnitTest    # mood logic tests + renders every state
 ```
 
 The screenshot test renders the real watch face with Robolectric's native graphics (the same
 `android.graphics` code the watch runs) for every character, mood and standby pose. Output goes to
 `watchface/build/screens/`, and the images in this README are regenerated into `docs/img/`.
+
+### Release signing
+
+Release builds are signed with the key described in a git-ignored `keystore.properties` at the
+repo root (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`). Without that file, release
+builds fall back to the debug key, so anyone can still build and sideload.
+
+### README images and GIF
+
+`./gradlew :watchface:testDebugUnitTest` regenerates `docs/img/*.png`. The GIF frames are rendered
+to `watchface/build/gif/` and assembled into `docs/img/demo.gif`.
 
 ### Try every mood (debug build)
 
