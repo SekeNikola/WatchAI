@@ -7,7 +7,7 @@ battery is low and celebrates when it's fully charged.
 
 <p align="center"><img src="docs/img/demo.gif" alt="Cute Companion in action: taps, moods, notifications, music and charging" width="328"></p>
 
-<p align="center"><a href="https://github.com/SekeNikola/WatchAI/releases/latest"><b>⬇️ Download the latest APK</b></a></p>
+<p align="center"><a href="https://github.com/SekeNikola/CuteCompanion/releases/latest"><b>⬇️ Download the latest APK</b></a></p>
 
 ![The three characters](docs/img/hero.png)
 
@@ -74,7 +74,7 @@ note while music plays, a letter while something is unread.
 
 ## Download
 
-1. Open the **[latest release](https://github.com/SekeNikola/WatchAI/releases/latest)** and download **`CuteCompanion-<version>.apk`**
+1. Open the **[latest release](https://github.com/SekeNikola/CuteCompanion/releases/latest)** and download **`CuteCompanion-<version>.apk`**
    under *Assets*.
 2. Install it on your watch with the steps below. A watch can't download and install APKs by
    itself, so you install it from a computer over Wi-Fi with `adb`.
@@ -93,7 +93,7 @@ download the zip for Windows, macOS or Linux and unzip it. `adb` is inside.
 
 ### 1. Get the APK
 
-Download it from [Releases](https://github.com/SekeNikola/WatchAI/releases/latest) (above), or build it yourself with JDK 17
+Download it from [Releases](https://github.com/SekeNikola/CuteCompanion/releases/latest) (above), or build it yourself with JDK 17
 and the Android SDK (Android Studio includes both):
 
 ```bash
