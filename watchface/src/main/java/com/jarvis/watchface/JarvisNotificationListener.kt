@@ -55,8 +55,15 @@ class JarvisNotificationListener : NotificationListenerService() {
         updateMusic()
     }
 
+    /** A media notification is showing (Wear removes it when playback pauses). */
+    private var mediaNotification = false
+
     private fun updateMusic() {
-        val playing = controllers.any { it.playbackState?.state == PlaybackState.STATE_PLAYING }
+        // Wear's mirror of the phone player can sit in BUFFERING while music plays,
+        // so the media notification itself is the main signal; a session reporting
+        // PLAYING (e.g. a player on the watch) also counts.
+        val playing = mediaNotification ||
+            controllers.any { it.playbackState?.state == PlaybackState.STATE_PLAYING }
         if (playing != AvatarBus.music) Log.i(TAG, "music ${if (playing) "playing" else "stopped"}")
         AvatarBus.setMusic(playing)
     }
@@ -83,9 +90,18 @@ class JarvisNotificationListener : NotificationListenerService() {
         sbn.packageName != packageName && !sbn.isOngoing &&
             (sbn.notification.flags and Notification.FLAG_GROUP_SUMMARY) == 0
 
+    private fun isMedia(sbn: StatusBarNotification): Boolean {
+        val n = sbn.notification
+        return n.category == Notification.CATEGORY_TRANSPORT ||
+            n.extras.containsKey(Notification.EXTRA_MEDIA_SESSION) ||
+            n.extras.getString(Notification.EXTRA_TEMPLATE)?.endsWith("MediaStyle") == true
+    }
+
     private fun recount() {
         val active = try { activeNotifications } catch (e: Exception) { null } ?: return
         AvatarBus.setUnread(active.count(::counts))
+        mediaNotification = active.any(::isMedia)
+        updateMusic()
     }
 
     private companion object {
