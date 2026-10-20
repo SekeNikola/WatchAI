@@ -2,6 +2,7 @@ package com.jarvis.watchface
 
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.Gravity
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -25,7 +26,15 @@ class CharacterEditorActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         lifecycleScope.launch {
-            val session = EditorSession.createOnWatchEditorSession(this@CharacterEditorActivity)
+            // Only the system's Customize flow supplies the editor request; opened any other
+            // way the library throws. Close quietly: the face shares this process.
+            val session = try {
+                EditorSession.createOnWatchEditorSession(this@CharacterEditorActivity)
+            } catch (e: Exception) {
+                Log.w("JarvisEditor", "not opened from Customize: $e")
+                finish()
+                return@launch
+            }
             val setting = session.userStyleSchema.userStyleSettings
                 .first { it.id.value == Styles.CHARACTER_ID } as ListUserStyleSetting
             val current = Styles.character(session.userStyle.value)

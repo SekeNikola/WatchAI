@@ -13,10 +13,19 @@ import com.jarvis.avatar.Character
 object Styles {
     const val CHARACTER_ID = "character"
 
+    // Large icons for our picker screen.
     private val ICONS = mapOf(
         Character.JARVIS to R.drawable.char_jarvis,
         Character.DOG to R.drawable.char_dog,
         Character.GHOST to R.drawable.char_ghost,
+    )
+
+    // Small icons inside the schema: the whole schema is sent over Bluetooth and the
+    // library refuses (crashes the face) above 50 000 bytes. Keep these ~64 px.
+    private val SCHEMA_ICONS = mapOf(
+        Character.JARVIS to R.drawable.char_jarvis_small,
+        Character.DOG to R.drawable.char_dog_small,
+        Character.GHOST to R.drawable.char_ghost_small,
     )
     private val NAMES = mapOf(
         Character.JARVIS to R.string.char_jarvis,
@@ -32,7 +41,7 @@ object Styles {
                 UserStyleSetting.Option.Id(ch.id),
                 context.resources,
                 NAMES.getValue(ch),
-                Icon.createWithResource(context, ICONS.getValue(ch)),
+                Icon.createWithResource(context, SCHEMA_ICONS.getValue(ch)),
             )
         }
         val character = ListUserStyleSetting(
