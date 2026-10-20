@@ -85,9 +85,9 @@ class JarvisNotificationListener : NotificationListenerService() {
         AvatarBus.post("notify:$kind:${SystemClock.uptimeMillis()}")
     }
 
-    /** Notifications that stay in the stream until you clear them. */
+    /** Notifications you can read and swipe away: not ongoing, not un-clearable (media players), not media. */
     private fun counts(sbn: StatusBarNotification): Boolean =
-        sbn.packageName != packageName && !sbn.isOngoing &&
+        sbn.packageName != packageName && sbn.isClearable && !isMedia(sbn) &&
             (sbn.notification.flags and Notification.FLAG_GROUP_SUMMARY) == 0
 
     private fun isMedia(sbn: StatusBarNotification): Boolean {
