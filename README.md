@@ -115,7 +115,7 @@ adb pair <watch-ip>:<pairing-port> <code>
 
 # every time: the IP:port shown on the Wireless debugging screen
 adb connect <watch-ip>:<port>
-adb install -r CuteCompanion-1.0.1.apk
+adb install -r CuteCompanion-1.0.2.apk
 ```
 
 ### 4. Set the face and pick a character
@@ -125,7 +125,10 @@ adb install -r CuteCompanion-1.0.1.apk
 
 ### 5. Optional: notifications and music
 
-The letter badge, notification reactions and music notes need notification access. Wear OS
+The letter badge works out of the box: it follows the watch's own unread counter (the number behind
+Wear's unread dot), so it covers notifications forwarded from your phone and clears when you read them.
+
+The notification hop and the music notes need notification access. Wear OS
 has no settings screen for that, so grant it with adb:
 
 ```bash
@@ -133,7 +136,7 @@ adb shell cmd notification allow_listener com.jarvis.watchface/com.jarvis.watchf
 # to undo: ... disallow_listener ...
 ```
 
-Without it, everything else (moods, taps, battery, time of day) still works.
+Without it, everything else (moods, taps, battery, time of day, the letter badge) still works.
 
 ## Moods at a glance
 
@@ -213,7 +216,7 @@ adb shell am broadcast -a com.jarvis.watchface.DEBUG -p com.jarvis.watchface --e
 | `state:angry` | hold any mood (`idle`, `bored`, `worried`, `charging`, `full`, `sleeping`, `dizzy`, …) |
 | `emote:love` | `love`, `surprised`, `proud`, `wink`, `yawn`, `happy`, `annoyed` |
 | `tap`, `bored`, `notify:remind` | simulate a tap, skip the bored timer, a notification |
-| `music:on`, `unread:2` | fake music / unread count |
+| `music:on`, `unread:2` | fake music / unread count (`unread:auto` returns to the real count) |
 | `battery:10:false`, `hour:2` | fake battery level and charging, or time of day (`:real` to undo) |
 | `lite:on` | force the battery-saver look (`lite:off`, `lite:auto`) |
 | `clear` | back to live signals |
