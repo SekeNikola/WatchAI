@@ -14,6 +14,9 @@ import android.os.PowerManager
 import android.os.SystemClock
 import android.view.SurfaceHolder
 import androidx.wear.watchface.CanvasType
+import androidx.wear.watchface.ComplicationSlotsManager
+import androidx.wear.watchface.complications.data.ComplicationData
+import android.util.Log
 import androidx.wear.watchface.DrawMode
 import androidx.wear.watchface.Renderer
 import androidx.wear.watchface.WatchState
@@ -33,6 +36,7 @@ class JarvisCanvasRenderer(
     surfaceHolder: SurfaceHolder,
     private val watchState: WatchState,
     private val currentUserStyleRepository: CurrentUserStyleRepository,
+    private val complicationSlotsManager: ComplicationSlotsManager,
 ) : Renderer.CanvasRenderer2<JarvisCanvasRenderer.Assets>(
     surfaceHolder,
     currentUserStyleRepository,
@@ -56,6 +60,9 @@ class JarvisCanvasRenderer(
     private var styleCharacter = Character.JARVIS
     private var debugCharacter: Character? = null
     private var debugLite: Boolean? = null
+    private var debugUnread: Int? = null
+    private var lastUnreadData: ComplicationData? = null
+    private var systemUnread: Int? = null
     private var clockBase = SystemClock.uptimeMillis()
 
     private val batteryReceiver = object : BroadcastReceiver() {
@@ -125,6 +132,7 @@ class JarvisCanvasRenderer(
             val cmd = AvatarBus.poll() ?: break
             when {
                 cmd == "assist" -> AssistantLauncher.launch(context)
+                cmd.startsWith("unread:") -> debugUnread = cmd.substringAfter(':').toIntOrNull()
                 cmd.startsWith("lite:") -> debugLite = when (cmd.substringAfter(':')) { "on" -> true; "off" -> false; else -> null }
                 cmd.startsWith("character:") -> debugCharacter =
                     cmd.substringAfter(':').let { if (it == "style") null else Character.fromId(it) }
@@ -143,7 +151,7 @@ class JarvisCanvasRenderer(
         }
         painter.character = debugCharacter ?: styleCharacter
         director.update(nowMs, hour)
-        engine.mail = AvatarBus.unread > 0
+        engine.mail = unreadCount() > 0
         engine.music = AvatarBus.music
 
         val w = bounds.width().toFloat()
@@ -151,7 +159,7 @@ class JarvisCanvasRenderer(
         if (ambient) {
             painter.drawAmbient(
                 canvas, w, h, zonedDateTime, engine, director.batteryLevel, director.charging,
-                watchState.hasLowBitAmbient, director.hasPendingAlert(nowMs) || AvatarBus.unread > 0, AvatarBus.music,
+                watchState.hasLowBitAmbient, director.hasPendingAlert(nowMs) || unreadCount() > 0, AvatarBus.music,
             )
         } else {
             // Battery: 30 fps while something happens, 20 fps when only the idle loop runs;
@@ -171,11 +179,28 @@ class JarvisCanvasRenderer(
         }
     }
 
+    /**
+     * Unread notifications: the system's own counter (covers notifications forwarded
+     * from the phone), else the notification listener's count. Parsed only when the
+     * complication data changes.
+     */
+    private fun unreadCount(): Int {
+        debugUnread?.let { return it }
+        val data = complicationSlotsManager[UnreadSlot.ID]?.complicationData?.value
+        if (data !== lastUnreadData) {
+            lastUnreadData = data
+            systemUnread = data?.let { UnreadSlot.count(it, context.resources) }
+            Log.i(TAG, "system unread count: ${systemUnread ?: "unavailable"} (${data?.type})")
+        }
+        return systemUnread ?: AvatarBus.unread
+    }
+
     override fun renderHighlightLayer(canvas: Canvas, bounds: Rect, zonedDateTime: ZonedDateTime, sharedAssets: Assets) {
         canvas.drawColor(renderParameters.highlightLayer!!.backgroundTint)
     }
 
     companion object {
+        private const val TAG = "JarvisFace"
         const val DEBUG_ACTION = "com.jarvis.watchface.DEBUG"
         /** ~30 fps: smooth for a floating character at half the cost of 60. */
         private const val FRAME_MS = 33L

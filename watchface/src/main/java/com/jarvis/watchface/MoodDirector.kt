@@ -159,7 +159,6 @@ class MoodDirector(private val engine: JarvisEngine) {
                 "hour" -> hourOverride = if (parts[1] == "real") Float.NaN else parts[1].toFloat()
                 "bored" -> { hold = null; lastInteraction = now - boredAfterMs - 1 }
                 "tap" -> onTap(now)
-                "unread" -> AvatarBus.setUnread(parts[1].toInt())
                 "music" -> AvatarBus.setMusic(parts[1] == "on")
                 else -> return false
             }

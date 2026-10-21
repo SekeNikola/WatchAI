@@ -16,13 +16,18 @@ class JarvisWatchFaceService : WatchFaceService() {
 
     override fun createUserStyleSchema(): UserStyleSchema = Styles.schema(this)
 
+    override fun createComplicationSlotsManager(currentUserStyleRepository: CurrentUserStyleRepository) =
+        UnreadSlot.manager(currentUserStyleRepository)
+
     override suspend fun createWatchFace(
         surfaceHolder: SurfaceHolder,
         watchState: WatchState,
         complicationSlotsManager: ComplicationSlotsManager,
         currentUserStyleRepository: CurrentUserStyleRepository,
     ): WatchFace {
-        val renderer = JarvisCanvasRenderer(applicationContext, surfaceHolder, watchState, currentUserStyleRepository)
+        val renderer = JarvisCanvasRenderer(
+            applicationContext, surfaceHolder, watchState, currentUserStyleRepository, complicationSlotsManager,
+        )
         return WatchFace(WatchFaceType.DIGITAL, renderer).setTapListener(
             object : WatchFace.TapListener {
                 override fun onTapEvent(tapType: Int, tapEvent: TapEvent, complicationSlot: ComplicationSlot?) {
